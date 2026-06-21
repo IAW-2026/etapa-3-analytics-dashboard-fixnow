@@ -9,5 +9,3 @@ Herramienta de reportes consolidados (Etapa 3): métricas del sistema completo c
 ---
 
 Enunciado completo: <https://iaw-2026.github.io/proyecto/>
-
-HOLA
