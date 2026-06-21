@@ -6,6 +6,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-}
+  devIndicators: {
+    appIsrStatus: false, // Oculta el icono de la "N"
+    buildActivity: false, // Oculta el icono de compilación
+  },
+};
 
-export default nextConfig
+export default nextConfig;

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
+import useSWR from "swr";
 import {
   AreaChart,
   Area,
@@ -9,25 +9,31 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-} from "recharts"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchRevenueTrend,
   formatCompactCLP,
   type RevenueTrendDatum,
-} from "@/lib/analytics-data"
+} from "@/lib/analytics-data";
 
 function RevenueTooltip({
   active,
   payload,
   label,
 }: {
-  active?: boolean
-  payload?: Array<{ value: number }>
-  label?: string
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
 }) {
-  if (!active || !payload?.length) return null
+  if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-md">
       <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
@@ -35,33 +41,54 @@ function RevenueTooltip({
         {formatCompactCLP(payload[0].value)}
       </p>
     </div>
-  )
+  );
 }
 
 export function RevenueTrendChart() {
-  const { data, isLoading } = useSWR<RevenueTrendDatum[]>("revenue-trend", fetchRevenueTrend)
+  const { data, isLoading } = useSWR<RevenueTrendDatum[]>(
+    "revenue-trend",
+    fetchRevenueTrend,
+  );
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="font-[family-name:var(--font-display)] text-lg">
+        <CardTitle className="font-(family-name:--font-display) text-lg">
           Tendencia de Ingresos
         </CardTitle>
         <CardDescription>Últimos 6 meses · Payments App</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading || !data ? (
-          <Skeleton className="h-[260px] w-full" />
+          <Skeleton className="h-65 w-full" />
         ) : (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={data} margin={{ left: 4, right: 8, top: 4 }}>
               <defs>
-                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--plumbing)" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="var(--plumbing)" stopOpacity={0} />
+                <linearGradient
+                  id="revenueGradient"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--plumbing)"
+                    stopOpacity={0.35}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--plumbing)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
-              <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+              <CartesianGrid
+                vertical={false}
+                stroke="var(--border)"
+                strokeDasharray="3 3"
+              />
               <XAxis
                 dataKey="month"
                 tickLine={false}
@@ -88,5 +115,5 @@ export function RevenueTrendChart() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

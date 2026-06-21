@@ -1,20 +1,31 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
-import { Users, ArrowLeftRight, TrendingUp, Star, ArrowUpRight } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { fetchKpis, formatCompactCLP, formatNumber, type KpiData } from "@/lib/analytics-data"
+import useSWR from "swr";
+import {
+  Users,
+  ArrowLeftRight,
+  TrendingUp,
+  Star,
+  ArrowUpRight,
+} from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  fetchKpis,
+  formatCompactCLP,
+  formatNumber,
+  type KpiData,
+} from "@/lib/analytics-data";
 
 interface KpiCard {
-  key: keyof KpiData | "custom"
-  label: string
-  icon: typeof Users
-  source: string
-  accent: string
-  format: (k: KpiData) => string
-  sub: (k: KpiData) => string
-  trend: string
+  key: keyof KpiData | "custom";
+  label: string;
+  icon: typeof Users;
+  source: string;
+  accent: string;
+  format: (k: KpiData) => string;
+  sub: (k: KpiData) => string;
+  trend: string;
 }
 
 const cards: KpiCard[] = [
@@ -59,15 +70,15 @@ const cards: KpiCard[] = [
     sub: (k) => `${formatNumber(k.totalReviews)} reseñas`,
     trend: "+0.2",
   },
-]
+];
 
 export function KpiCards() {
-  const { data, isLoading } = useSWR<KpiData>("kpis", fetchKpis)
+  const { data, isLoading } = useSWR<KpiData>("kpis", fetchKpis);
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => {
-        const Icon = card.icon
+        const Icon = card.icon;
         return (
           <Card
             key={card.label}
@@ -81,7 +92,9 @@ export function KpiCards() {
             <div className="flex items-start justify-between">
               <div
                 className="flex size-10 items-center justify-center rounded-lg"
-                style={{ backgroundColor: `color-mix(in srgb, ${card.accent} 18%, transparent)` }}
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${card.accent} 18%, transparent)`,
+                }}
               >
                 <Icon className="size-5" style={{ color: card.accent }} />
               </div>
@@ -96,14 +109,16 @@ export function KpiCards() {
               {isLoading || !data ? (
                 <Skeleton className="mt-1.5 h-8 w-32" />
               ) : (
-                <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight">
+                <p className="mt-1 font-(family-name:--font-display) text-3xl font-bold tracking-tight">
                   {card.format(data)}
                 </p>
               )}
               {isLoading || !data ? (
                 <Skeleton className="mt-2 h-4 w-40" />
               ) : (
-                <p className="mt-1.5 text-xs text-muted-foreground">{card.sub(data)}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {card.sub(data)}
+                </p>
               )}
             </div>
 
@@ -111,8 +126,8 @@ export function KpiCards() {
               {card.source}
             </p>
           </Card>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
