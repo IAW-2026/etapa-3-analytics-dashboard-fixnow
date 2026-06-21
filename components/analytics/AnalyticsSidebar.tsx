@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import Image from "next/image"
+import Image from "next/image";
 import {
   LayoutDashboard,
   PieChart,
@@ -9,37 +9,37 @@ import {
   LogOut,
   User,
   Circle,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
-export type AnalyticsView = "resumen" | "analisis" | "monitoreo"
+export type AnalyticsView = "resumen" | "analisis" | "monitoreo";
 
 interface AnalyticsSidebarProps {
-  currentView: AnalyticsView
-  onViewChange: (view: AnalyticsView) => void
-  onLogout: () => void
+  currentView: AnalyticsView;
+  onViewChange: (view: AnalyticsView) => void;
+  onLogout: () => void;
 }
 
 const navItems = [
   { id: "resumen" as const, label: "Resumen", icon: LayoutDashboard },
   { id: "analisis" as const, label: "Análisis", icon: PieChart },
   { id: "monitoreo" as const, label: "Monitoreo", icon: Trophy },
-]
+];
 
 const sources = [
   { label: "Rider App", color: "var(--plumbing)" },
   { label: "Driver App", color: "var(--electrical)" },
   { label: "Payments App", color: "var(--brand-accent)" },
   { label: "Feedback App", color: "#7aa7d6" },
-]
+];
 
 export function AnalyticsSidebar({
   currentView,
@@ -51,14 +51,14 @@ export function AnalyticsSidebar({
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
         <Image
-          src="/fix-now-logo.png"
+          src="/fix_now_logo.png"
           alt="FixNow"
           width={36}
           height={36}
           className="size-9"
         />
         <div className="flex flex-col leading-tight">
-          <span className="font-[family-name:var(--font-display)] text-base font-semibold tracking-tight text-white">
+          <span className="font-(family-name:--font-display) text-base font-semibold tracking-tight text-white">
             FixNow
           </span>
           <span className="text-[10px] font-medium uppercase tracking-wider text-[#DAB785]">
@@ -70,8 +70,8 @@ export function AnalyticsSidebar({
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = currentView === item.id
+          const Icon = item.icon;
+          const isActive = currentView === item.id;
           return (
             <button
               key={item.id}
@@ -80,13 +80,13 @@ export function AnalyticsSidebar({
                 "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-plumbing text-white"
-                  : "text-white/70 hover:bg-sidebar-accent hover:text-white"
+                  : "text-white/70 hover:bg-sidebar-accent hover:text-white",
               )}
             >
               <Icon className="size-5" />
               {item.label}
             </button>
-          )
+          );
         })}
 
         {/* Data sources legend */}
@@ -146,5 +146,5 @@ export function AnalyticsSidebar({
         </DropdownMenu>
       </div>
     </aside>
-  )
+  );
 }

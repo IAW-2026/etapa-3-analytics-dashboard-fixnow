@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { KpiCards } from "@/components/analytics/kpi-cards"
-import { AnalyticsCharts } from "@/components/analytics/analytics-charts"
-import { RevenueTrendChart } from "@/components/analytics/revenue-trend-chart"
-import { TopProfessionals } from "@/components/analytics/top-professionals"
-import type { AnalyticsView } from "@/components/analytics/analytics-sidebar"
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { KpiCards } from "@/components/analytics/KpiCards";
+import { AnalyticsCharts } from "@/components/analytics/AnalyticsCharts";
+import { RevenueTrendChart } from "@/components/analytics/RevenueTrendChart";
+import { TopProfessionals } from "@/components/analytics/TopProfessionals";
+import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 
 interface AnalyticsDashboardProps {
-  currentView: AnalyticsView
+  currentView: AnalyticsView;
 }
 
 const titles: Record<AnalyticsView, { title: string; subtitle: string }> = {
@@ -23,25 +23,26 @@ const titles: Record<AnalyticsView, { title: string; subtitle: string }> = {
   },
   monitoreo: {
     title: "Monitoreo de Profesionales",
-    subtitle: "Ranking y desempeño de los mejores profesionales de la plataforma",
+    subtitle:
+      "Ranking y desempeño de los mejores profesionales de la plataforma",
   },
-}
+};
 
 export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
-  const { title, subtitle } = titles[currentView]
+  const { title, subtitle } = titles[currentView];
   const now = new Date().toLocaleString("es-CL", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-  })
+  });
 
   return (
     <div className="flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-10 flex flex-col gap-3 border-b border-border bg-background/80 px-8 py-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">
+          <h1 className="font-(family-name:--font-display) text-2xl font-bold tracking-tight">
             {title}
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
@@ -86,5 +87,5 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
