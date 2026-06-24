@@ -486,6 +486,18 @@ export async function fetchCancelaciones(): Promise<CancelacionDatum[]> {
   return res.json();
 }
 
+// --- Distribución de ratings -------------------------------------------------
+export interface RatingBucket {
+  estrellas: number;
+  cantidad: number;
+}
+
+export async function fetchRatingDistribution(): Promise<RatingBucket[]> {
+  const res = await fetch("/api/profesionales/ratings");
+  if (!res.ok) throw new Error("Error al cargar distribución de ratings");
+  return res.json();
+}
+
 // --- Formatting helpers ------------------------------------------------------
 export function formatCLP(value: number): string {
   return new Intl.NumberFormat("es-CL", {
