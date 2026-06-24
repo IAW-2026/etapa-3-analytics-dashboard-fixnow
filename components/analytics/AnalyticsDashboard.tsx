@@ -3,7 +3,10 @@
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KpiCards } from "@/components/analytics/KpiCards";
-import { AnalyticsCharts } from "@/components/analytics/AnalyticsCharts";
+import {
+  AnalyticsCharts,
+  RevenueByCategoryChart,
+} from "@/components/analytics/AnalyticsCharts";
 import { RevenueTrendChart } from "@/components/analytics/RevenueTrendChart";
 import { TopProfessionals } from "@/components/analytics/TopProfessionals";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
@@ -95,8 +98,9 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
             <AnalyticsCharts />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <RevenueTrendChart />
-              <TopProfessionals />
+            <RevenueByCategoryChart />
             </div>
+            <TopProfessionals />
           </>
         )}
 
