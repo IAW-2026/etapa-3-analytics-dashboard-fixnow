@@ -10,6 +10,7 @@ import {
 import { RevenueTrendChart } from "@/components/analytics/RevenueTrendChart";
 import { TopProfessionals } from "@/components/analytics/TopProfessionals";
 import { RatingHistogram } from "@/components/analytics/RatingHistogram";
+import { AlertasCalidad } from "@/components/analytics/AlertasCalidad";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
 import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
@@ -117,7 +118,10 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <>
             <KpiCards />
             <TopProfessionals />
-            <RatingHistogram />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <RatingHistogram />
+              <AlertasCalidad />
+            </div>
           </>
         )}
       </div>
