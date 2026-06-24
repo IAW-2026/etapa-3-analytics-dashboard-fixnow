@@ -21,6 +21,8 @@ const meses = [
   "Dic",
 ];
 
+const diasPorDiaSemana = [1.1, 1.0, 1.05, 0.7, 1.2, 1.3, 0.9]; // Dom-Sáb
+
 async function main() {
   console.log("🌱 Iniciando seed...");
 
