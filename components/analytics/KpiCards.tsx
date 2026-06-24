@@ -1,12 +1,14 @@
 "use client";
 
 import useSWR from "swr";
+import { useState } from "react";
 import {
   Users,
   ArrowLeftRight,
   TrendingUp,
   Star,
   ArrowUpRight,
+  ReceiptText,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +27,8 @@ interface KpiCard {
   accent: string;
   format: (k: KpiData) => string;
   sub: (k: KpiData) => string;
-  trend: string;
+  trend: string | ((k: KpiData) => string);
+  expandable?: boolean;
 }
 
 const cards: KpiCard[] = [
@@ -49,6 +52,7 @@ const cards: KpiCard[] = [
     format: (k) => formatCompactCLP(k.transactionVolume),
     sub: (k) => `${formatNumber(k.completedOrders)} pedidos completados`,
     trend: "+12.5%",
+    expandable: true,
   },
   {
     key: "netRevenue",
@@ -59,7 +63,19 @@ const cards: KpiCard[] = [
     format: (k) => formatCompactCLP(k.netRevenue),
     sub: () => "Comisión neta (~15%)",
     trend: "+9.1%",
+    expandable: true,
   },
+  {
+  key: "averageTicket",
+  label: "Ticket Promedio Global",
+  icon: ReceiptText,
+  source: "Payments App",
+  accent: "var(--brand-accent)",
+  format: (k) => formatCompactCLP(k.averageTicket),
+  sub: (k) => `${formatNumber(k.completedOrders)} pedidos completados`,
+  trend: (k) => k.averageTicketTrend,
+  expandable: true,
+},
   {
     key: "globalRating",
     label: "Satisfacción Global",
@@ -70,20 +86,36 @@ const cards: KpiCard[] = [
     sub: (k) => `${formatNumber(k.totalReviews)} reseñas`,
     trend: "+0.2",
   },
+ 
 ];
 
 export function KpiCards() {
   const { data, isLoading } = useSWR<KpiData>("kpis", fetchKpis);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  return (
+   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+     {cards.map((card) => {
+  const Icon = card.icon;
+  const trendValue =
+    typeof card.trend === "function" && data
+      ? card.trend(data)
+      : typeof card.trend === "string"
+        ? card.trend
+        : "...";
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
           <Card
-            key={card.label}
-            className="relative overflow-hidden border-border p-5"
-          >
+  key={card.label}
+  onClick={() =>
+    card.expandable &&
+    setExpandedCard((current) =>
+      current === card.label ? null : card.label,
+    )
+  }
+  className={`relative overflow-hidden border-border p-5 ${
+    card.expandable ? "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md" : ""
+  }`}
+>
             {/* Accent bar */}
             <div
               className="absolute inset-x-0 top-0 h-1"
@@ -100,7 +132,7 @@ export function KpiCards() {
               </div>
               <span className="inline-flex items-center gap-0.5 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success-foreground">
                 <ArrowUpRight className="size-3" />
-                {card.trend}
+                {trendValue}
               </span>
             </div>
 
@@ -120,6 +152,83 @@ export function KpiCards() {
                   {card.sub(data)}
                 </p>
               )}
+              {!isLoading &&
+  data &&
+  card.expandable &&
+  expandedCard === card.label && (
+    <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3 text-xs">
+      {card.key === "transactionVolume" && (
+        <>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Ingresos brutos</span>
+            <span className="font-medium">
+              {formatCompactCLP(data.transactionVolume)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span className="text-muted-foreground">Pedidos completados</span>
+            <span className="font-medium">
+              {formatNumber(data.completedOrders)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span className="text-muted-foreground">Comisión FixNow</span>
+            <span className="font-medium">
+              {formatCompactCLP(data.netRevenue)}
+            </span>
+          </div>
+        </>
+      )}
+
+      {card.key === "netRevenue" && (
+        <>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Comisión neta</span>
+            <span className="font-medium">
+              {formatCompactCLP(data.netRevenue)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span className="text-muted-foreground">Sobre bruto total</span>
+            <span className="font-medium">
+              {formatCompactCLP(data.transactionVolume)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span className="text-muted-foreground">Estimado comisión</span>
+            <span className="font-medium">
+              {data.transactionVolume > 0
+                ? `${((data.netRevenue / data.transactionVolume) * 100).toFixed(1)}%`
+                : "0.0%"}
+            </span>
+          </div>
+        </>
+      )}
+
+      {card.key === "averageTicket" && (
+        <>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Ticket promedio</span>
+            <span className="font-medium">
+              {formatCompactCLP(data.averageTicket)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span className="text-muted-foreground">Pedidos considerados</span>
+            <span className="font-medium">
+              {formatNumber(data.completedOrders)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex justify-between gap-3">
+            <span className="text-muted-foreground">Variación mensual</span>
+            <span className="font-medium">
+              {data.averageTicketTrend}
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  )}
             </div>
 
             <p className="mt-4 border-t border-border pt-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
