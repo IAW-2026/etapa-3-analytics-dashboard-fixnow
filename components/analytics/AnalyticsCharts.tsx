@@ -29,6 +29,7 @@ import {
   type CategoryDatum,
   type SuccessRateDatum,
 } from "@/lib/analytics-data";
+import type { Period } from "./AnalyticsDashboard";
 
 const categoryColors: Record<string, string> = {
   Plomería: "var(--plumbing)",
@@ -70,10 +71,10 @@ function ChartTooltip({
   );
 }
 
-function JobsByCategoryChart() {
+function JobsByCategoryChart({ period }: { period: Period }) {
   const { data, isLoading } = useSWR<CategoryDatum[]>(
-    "jobs-by-category",
-    fetchJobsByCategory,
+    `jobs-by-category-${period}`,
+    () => fetchJobsByCategory(period),
   );
   const total = data?.reduce((acc, d) => acc + d.jobs, 0) ?? 0;
 
@@ -116,13 +117,12 @@ function JobsByCategoryChart() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-(family-name:--font-display)text-2xl font-bold">
+                <span className="font-(family-name:--font-display) text-2xl font-bold">
                   {formatNumber(total)}
                 </span>
                 <span className="text-xs text-muted-foreground">Total</span>
               </div>
             </div>
-
             <div className="flex w-full flex-col gap-3 sm:max-w-45">
               {data.map((entry) => {
                 const pct = ((entry.jobs / total) * 100).toFixed(1);
@@ -142,9 +142,7 @@ function JobsByCategoryChart() {
                         {entry.category}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-sm font-semibold">{pct}%</span>
-                    </div>
+                    <span className="text-sm font-semibold">{pct}%</span>
                   </div>
                 );
               })}
@@ -156,10 +154,10 @@ function JobsByCategoryChart() {
   );
 }
 
-function SuccessRateChart() {
+function SuccessRateChart({ period }: { period: Period }) {
   const { data, isLoading } = useSWR<SuccessRateDatum[]>(
-    "success-rate",
-    fetchSuccessRate,
+    `success-rate-${period}`,
+    () => fetchSuccessRate(period),
   );
 
   return (
@@ -223,11 +221,11 @@ function SuccessRateChart() {
   );
 }
 
-export function AnalyticsCharts() {
+export function AnalyticsCharts({ period = "6m" }: { period?: Period }) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <JobsByCategoryChart />
-      <SuccessRateChart />
+      <JobsByCategoryChart period={period} />
+      <SuccessRateChart period={period} />
     </div>
   );
 }

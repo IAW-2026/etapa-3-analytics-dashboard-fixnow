@@ -16,6 +16,11 @@ import {
   formatNumber,
   type KpiData,
 } from "@/lib/analytics-data";
+import type { Period } from "./AnalyticsDashboard";
+
+interface KpiCardsProps {
+  period?: Period;
+}
 
 interface KpiCard {
   key: keyof KpiData | "custom";
@@ -72,8 +77,10 @@ const cards: KpiCard[] = [
   },
 ];
 
-export function KpiCards() {
-  const { data, isLoading } = useSWR<KpiData>("kpis", fetchKpis);
+export function KpiCards({ period }: KpiCardsProps) {
+  const { data, isLoading } = useSWR<KpiData>(`kpis-${period ?? "all"}`, () =>
+    fetchKpis(period),
+  );
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
