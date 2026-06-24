@@ -6,6 +6,7 @@ import { KpiCards } from "@/components/analytics/KpiCards";
 import { AnalyticsCharts } from "@/components/analytics/AnalyticsCharts";
 import { RevenueTrendChart } from "@/components/analytics/RevenueTrendChart";
 import { TopProfessionals } from "@/components/analytics/TopProfessionals";
+import { RatingHistogram } from "@/components/analytics/RatingHistogram";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
 
@@ -111,6 +112,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <>
             <KpiCards />
             <TopProfessionals />
+            <RatingHistogram />
           </>
         )}
       </div>

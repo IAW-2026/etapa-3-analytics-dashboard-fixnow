@@ -16,3 +16,10 @@ node_modules
 .next/
 .DS_Store
 /lib/generated/prisma
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+#Nacho
+todo.md
+pnpm-workspace.yaml
