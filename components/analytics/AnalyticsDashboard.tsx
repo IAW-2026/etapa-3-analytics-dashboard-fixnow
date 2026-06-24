@@ -8,6 +8,7 @@ import { RevenueTrendChart } from "@/components/analytics/RevenueTrendChart";
 import { TopProfessionals } from "@/components/analytics/TopProfessionals";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
+import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
 
 export type Period = "30d" | "90d" | "6m" | "1y";
 
@@ -102,7 +103,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
         {currentView === "analisis" && (
           <>
             <KpiCards period={period} />
-            <AnalyticsCharts period={period} />
+            <AnalisisCharts period={period} />
             <RevenueTrendChart period={period} />
           </>
         )}

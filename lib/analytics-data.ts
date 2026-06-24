@@ -59,6 +59,12 @@ export interface CancelacionDatum {
   _count: number;
 }
 
+export interface AverageTicketDatum {
+  category: string;
+  ticket: number;
+  fill: string;
+}
+
 // Helper para convertir Period a fechas
 function periodToParams(period: Period): string {
   const hasta = new Date();
@@ -317,4 +323,78 @@ export function formatCompactCLP(value: number): string {
 
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("es-CL").format(value);
+}
+
+// --- Ticket promedio por servicio ------------------------------------------------
+export async function fetchAverageTicket(
+  period: Period = "6m",
+): Promise<AverageTicketDatum[]> {
+  const anioActual = new Date().getFullYear();
+  const mesActual = new Date().getMonth() + 1;
+
+  // Traemos el año actual y el anterior por si el período cruza de año (ej. 6 meses en febrero)
+  const [resActual, resAnterior] = await Promise.all([
+    fetch(`/api/metricas?anio=${anioActual}`),
+    fetch(`/api/metricas?anio=${anioActual - 1}`),
+  ]);
+
+  const dataActual: MetricaMensualDatum[] = resActual.ok
+    ? await resActual.json()
+    : [];
+  const dataAnterior: MetricaMensualDatum[] = resAnterior.ok
+    ? await resAnterior.json()
+    : [];
+
+  const allData = [...dataAnterior, ...dataActual];
+
+  // Definimos cuántos meses hacia atrás vamos a mirar
+  const cantMeses =
+    period === "30d" ? 1 : period === "90d" ? 3 : period === "6m" ? 6 : 12;
+
+  // Acumuladores para el promedio
+  const categoryMap: Record<string, { sum: number; count: number }> = {
+    PLOMERIA: { sum: 0, count: 0 },
+    ELECTRICIDAD: { sum: 0, count: 0 },
+    GAS: { sum: 0, count: 0 },
+  };
+
+  for (const m of allData) {
+    if (!m.categoria) continue;
+
+    // Calculamos si el mes cae dentro de nuestro rango
+    const monthDiff = (anioActual - m.anio) * 12 + (mesActual - m.mes);
+    if (monthDiff >= 0 && monthDiff < cantMeses) {
+      if (categoryMap[m.categoria]) {
+        categoryMap[m.categoria].sum += Number(m.ticketPromedio);
+        categoryMap[m.categoria].count += 1;
+      }
+    }
+  }
+
+  return [
+    {
+      category: "Plomería",
+      ticket:
+        categoryMap.PLOMERIA.count > 0
+          ? categoryMap.PLOMERIA.sum / categoryMap.PLOMERIA.count
+          : 0,
+      fill: "var(--plumbing)",
+    },
+    {
+      category: "Electricidad",
+      ticket:
+        categoryMap.ELECTRICIDAD.count > 0
+          ? categoryMap.ELECTRICIDAD.sum / categoryMap.ELECTRICIDAD.count
+          : 0,
+      fill: "var(--electrical)",
+    },
+    {
+      category: "Gas",
+      ticket:
+        categoryMap.GAS.count > 0
+          ? categoryMap.GAS.sum / categoryMap.GAS.count
+          : 0,
+      fill: "var(--gas)",
+    },
+  ];
 }
