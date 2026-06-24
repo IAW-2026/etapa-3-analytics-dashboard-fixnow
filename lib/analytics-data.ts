@@ -76,6 +76,11 @@ export interface CancelacionDatum {
   _count?: number;
 }
 
+export interface RatingBucket {
+  estrellas: number;
+  cantidad: number;
+}
+
 interface SnapshotKpiApi {
   volumenTransacciones: number | string;
   ingresosNetos: number | string;
@@ -174,7 +179,7 @@ async function getProfessionalsCount(): Promise<number> {
   return 612;
 }
 
-// --- Payments App API --------------------------------------------------------
+// --- Payments App API ---------------------------------------------------------
 async function getPaymentsSummary(): Promise<{
   transactionVolume: number;
   netRevenue: number;
@@ -234,7 +239,7 @@ async function getPaymentsSummary(): Promise<{
   }
 }
 
-// --- Feedback App API --------------------------------------------------------
+// --- Feedback App API ---------------------------------------------------------
 async function getFeedbackSummary(): Promise<{
   globalRating: number;
   totalReviews: number;
@@ -243,7 +248,7 @@ async function getFeedbackSummary(): Promise<{
   return { globalRating: 4.7, totalReviews: 11_240 };
 }
 
-// --- Consolidated KPIs (top row) ---------------------------------------------
+// --- Consolidated KPIs --------------------------------------------------------
 export async function fetchKpis(_period?: Period): Promise<KpiData> {
   const [clients, professionals, payments, feedback] = await Promise.all([
     getClientsCount(),
@@ -267,7 +272,7 @@ export async function fetchKpis(_period?: Period): Promise<KpiData> {
   };
 }
 
-// --- Trabajos por categoría --------------------------------------------------
+// --- Trabajos por categoría ---------------------------------------------------
 export async function fetchJobsByCategory(
   period: Period = "6m",
 ): Promise<CategoryDatum[]> {
@@ -285,8 +290,10 @@ export async function fetchJobsByCategory(
     GAS: 0,
   };
 
-  for (const t of trabajos) {
-    if (conteo[t.categoria] !== undefined) conteo[t.categoria]++;
+  for (const trabajo of trabajos) {
+    if (conteo[trabajo.categoria] !== undefined) {
+      conteo[trabajo.categoria]++;
+    }
   }
 
   return [
@@ -300,7 +307,7 @@ export async function fetchJobsByCategory(
   ];
 }
 
-// --- Tasa de éxito -----------------------------------------------------------
+// --- Tasa de éxito ------------------------------------------------------------
 export async function fetchSuccessRate(
   period: Period = "6m",
 ): Promise<SuccessRateDatum[]> {
@@ -319,10 +326,14 @@ export async function fetchSuccessRate(
     GAS: { completados: 0, cancelados: 0 },
   };
 
-  for (const t of trabajos) {
-    if (!conteo[t.categoria]) continue;
-    if (t.estado === "COMPLETADO") conteo[t.categoria].completados++;
-    else if (t.estado === "CANCELADO") conteo[t.categoria].cancelados++;
+  for (const trabajo of trabajos) {
+    if (!conteo[trabajo.categoria]) continue;
+
+    if (trabajo.estado === "COMPLETADO") {
+      conteo[trabajo.categoria].completados++;
+    } else if (trabajo.estado === "CANCELADO") {
+      conteo[trabajo.categoria].cancelados++;
+    }
   }
 
   return [
@@ -332,7 +343,7 @@ export async function fetchSuccessRate(
   ];
 }
 
-// --- Tendencia de ingresos ---------------------------------------------------
+// --- Tendencia de ingresos ----------------------------------------------------
 export async function fetchRevenueTrend(
   period: Period = "6m",
 ): Promise<RevenueTrendDatum[]> {
@@ -351,8 +362,8 @@ export async function fetchRevenueTrend(
     ? await resAnterior.json()
     : [];
 
-  const globalesActual = dataActual.filter((m) => !m.categoria);
-  const globalesAnterior = dataAnterior.filter((m) => !m.categoria);
+  const globalesActual = dataActual.filter((metrica) => !metrica.categoria);
+  const globalesAnterior = dataAnterior.filter((metrica) => !metrica.categoria);
 
   const cantMeses =
     period === "30d" ? 1 : period === "90d" ? 3 : period === "6m" ? 6 : 12;
@@ -369,19 +380,22 @@ export async function fetchRevenueTrend(
     }
 
     const fuente = anio === anioActual ? globalesActual : globalesAnterior;
-    const datum = fuente.find((m) => m.mes === mes && m.anio === anio);
+    const datum = fuente.find(
+      (metrica) => metrica.mes === mes && metrica.anio === anio,
+    );
 
     if (datum) resultado.push(datum);
   }
 
-  return resultado.map((m) => ({
-    month: mesesNombres[m.mes - 1],
-    ingresos: Number(m.ingresosTotal),
-    transacciones: m.trabajosCompletados + m.trabajosCancelados,
+  return resultado.map((metrica) => ({
+    month: mesesNombres[metrica.mes - 1],
+    ingresos: Number(metrica.ingresosTotal),
+    transacciones:
+      metrica.trabajosCompletados + metrica.trabajosCancelados,
   }));
 }
 
-// --- Ingresos por categoría --------------------------------------------------
+// --- Ingresos por categoría ---------------------------------------------------
 export async function fetchRevenueByCategory(): Promise<
   RevenueByCategoryDatum[]
 > {
@@ -461,7 +475,7 @@ export async function fetchRevenueByCategory(): Promise<
   }
 }
 
-// --- Feedback / Driver App: top profesionales --------------------------------
+// --- Top profesionales --------------------------------------------------------
 export async function fetchTopProfessionals(): Promise<TopProfessional[]> {
   const res = await fetch("/api/profesionales?limit=5");
 
@@ -482,17 +496,17 @@ export async function fetchTopProfessionals(): Promise<TopProfessional[]> {
     GAS: "Gas",
   };
 
-  return data.map((p) => ({
-    id: p.id,
-    name: p.nombre,
-    category: categoryMap[p.categoria],
-    rating: p.calificacionPromedio,
-    jobs: p.totalTrabajos,
-    city: p.ciudad,
+  return data.map((profesional) => ({
+    id: profesional.id,
+    name: profesional.nombre,
+    category: categoryMap[profesional.categoria],
+    rating: profesional.calificacionPromedio,
+    jobs: profesional.totalTrabajos,
+    city: profesional.ciudad,
   }));
 }
 
-// --- Métricas mensuales (para comparativa) -----------------------------------
+// --- Métricas mensuales -------------------------------------------------------
 export async function fetchMetricasMensuales(
   period: Period,
 ): Promise<MetricaMensualDatum[]> {
@@ -502,7 +516,7 @@ export async function fetchMetricasMensuales(
   if (!res.ok) throw new Error("Error al cargar métricas mensuales");
 
   const data: MetricaMensualDatum[] = await res.json();
-  const globales = data.filter((m) => !m.categoria);
+  const globales = data.filter((metrica) => !metrica.categoria);
 
   const cantidad =
     period === "30d" ? 1 : period === "90d" ? 3 : period === "6m" ? 6 : 12;
@@ -510,7 +524,7 @@ export async function fetchMetricasMensuales(
   return globales.slice(-cantidad);
 }
 
-// --- Cancelaciones agrupadas -------------------------------------------------
+// --- Cancelaciones agrupadas --------------------------------------------------
 export async function fetchCancelaciones(): Promise<CancelacionDatum[]> {
   const res = await fetch("/api/trabajos/cancelaciones");
 
@@ -519,7 +533,18 @@ export async function fetchCancelaciones(): Promise<CancelacionDatum[]> {
   return res.json();
 }
 
-// --- Ticket promedio por servicio -------------------------------------------
+// --- Distribución de ratings --------------------------------------------------
+export async function fetchRatingDistribution(): Promise<RatingBucket[]> {
+  const res = await fetch("/api/profesionales/ratings");
+
+  if (!res.ok) {
+    throw new Error("Error al cargar distribución de ratings");
+  }
+
+  return res.json();
+}
+
+// --- Ticket promedio por servicio --------------------------------------------
 export async function fetchAverageTicket(
   period: Period = "6m",
 ): Promise<AverageTicketDatum[]> {
@@ -549,14 +574,19 @@ export async function fetchAverageTicket(
     GAS: { sum: 0, count: 0 },
   };
 
-  for (const m of allData) {
-    if (!m.categoria) continue;
+  for (const metrica of allData) {
+    if (!metrica.categoria) continue;
 
-    const monthDiff = (anioActual - m.anio) * 12 + (mesActual - m.mes);
+    const monthDiff =
+      (anioActual - metrica.anio) * 12 + (mesActual - metrica.mes);
 
-    if (monthDiff >= 0 && monthDiff < cantMeses && categoryMap[m.categoria]) {
-      categoryMap[m.categoria].sum += Number(m.ticketPromedio);
-      categoryMap[m.categoria].count += 1;
+    if (
+      monthDiff >= 0 &&
+      monthDiff < cantMeses &&
+      categoryMap[metrica.categoria]
+    ) {
+      categoryMap[metrica.categoria].sum += Number(metrica.ticketPromedio);
+      categoryMap[metrica.categoria].count += 1;
     }
   }
 
@@ -588,7 +618,7 @@ export async function fetchAverageTicket(
   ];
 }
 
-// --- Formatting helpers ------------------------------------------------------
+// --- Formatting helpers -------------------------------------------------------
 export function formatCLP(value: number): string {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
