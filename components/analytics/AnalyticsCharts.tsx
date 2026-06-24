@@ -32,6 +32,7 @@ import {
   type RevenueByCategoryDatum,
   type SuccessRateDatum,
 } from "@/lib/analytics-data";
+import type { Period } from "./AnalyticsDashboard";
 
 const categoryColors: Record<string, string> = {
   Plomería: "var(--plumbing)",
@@ -73,10 +74,10 @@ function ChartTooltip({
   );
 }
 
-function JobsByCategoryChart() {
+function JobsByCategoryChart({ period }: { period: Period }) {
   const { data, isLoading } = useSWR<CategoryDatum[]>(
-    "jobs-by-category",
-    fetchJobsByCategory,
+    `jobs-by-category-${period}`,
+    () => fetchJobsByCategory(period),
   );
   const total = data?.reduce((acc, d) => acc + d.jobs, 0) ?? 0;
 
@@ -125,7 +126,6 @@ function JobsByCategoryChart() {
                 <span className="text-xs text-muted-foreground">Total</span>
               </div>
             </div>
-
             <div className="flex w-full flex-col gap-3 sm:max-w-45">
               {data.map((entry) => {
                 const pct = ((entry.jobs / total) * 100).toFixed(1);
@@ -145,9 +145,7 @@ function JobsByCategoryChart() {
                         {entry.category}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-sm font-semibold">{pct}%</span>
-                    </div>
+                    <span className="text-sm font-semibold">{pct}%</span>
                   </div>
                 );
               })}
@@ -159,10 +157,10 @@ function JobsByCategoryChart() {
   );
 }
 
-function SuccessRateChart() {
+function SuccessRateChart({ period }: { period: Period }) {
   const { data, isLoading } = useSWR<SuccessRateDatum[]>(
-    "success-rate",
-    fetchSuccessRate,
+    `success-rate-${period}`,
+    () => fetchSuccessRate(period),
   );
 
   return (
@@ -229,7 +227,7 @@ export function RevenueByCategoryChart() {
   const { data, isLoading } = useSWR<RevenueByCategoryDatum[]>(
     "revenue-by-category",
     fetchRevenueByCategory,
-  )
+  );
 
   return (
     <Card className="border-border">
@@ -241,6 +239,7 @@ export function RevenueByCategoryChart() {
           Aporte de cada servicio al revenue total · Payments App
         </CardDescription>
       </CardHeader>
+
       <CardContent>
         {isLoading || !data ? (
           <Skeleton className="h-70 w-full" />
@@ -252,30 +251,34 @@ export function RevenueByCategoryChart() {
                 stroke="var(--border)"
                 strokeDasharray="3 3"
               />
+
               <XAxis
                 dataKey="category"
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
               />
+
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
                 tickFormatter={(v) => formatCompactCLP(Number(v))}
               />
+
               <Tooltip
                 cursor={{ fill: "var(--muted)" }}
                 content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
+                  if (!active || !payload?.length) return null;
 
-                  const item = payload[0].payload as RevenueByCategoryDatum
+                  const item = payload[0].payload as RevenueByCategoryDatum;
 
                   return (
                     <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-md">
                       <p className="mb-1 text-sm font-medium">
                         {item.category}
                       </p>
+
                       <div className="text-sm">
                         <span className="text-muted-foreground">
                           Ingresos:{" "}
@@ -284,6 +287,7 @@ export function RevenueByCategoryChart() {
                           {formatCompactCLP(item.ingresos)}
                         </span>
                       </div>
+
                       <div className="text-sm">
                         <span className="text-muted-foreground">
                           Comisión FixNow:{" "}
@@ -293,9 +297,10 @@ export function RevenueByCategoryChart() {
                         </span>
                       </div>
                     </div>
-                  )
+                  );
                 }}
               />
+
               <Bar
                 dataKey="ingresos"
                 name="Ingresos"
@@ -310,13 +315,13 @@ export function RevenueByCategoryChart() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
-export function AnalyticsCharts() {
+export function AnalyticsCharts({ period = "6m" }: { period?: Period }) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <JobsByCategoryChart />
-      <SuccessRateChart />
+      <JobsByCategoryChart period={period} />
+      <SuccessRateChart period={period} />
     </div>
   );
 }

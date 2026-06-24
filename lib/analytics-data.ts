@@ -1,12 +1,7 @@
 // FixNow Analytics - Consolidated data layer
-// Simulates consuming the APIs of the 4 individual webapps:
-//   - Rider App   (clientes, trabajos por categoría, tasa de éxito)
-//   - Driver App  (profesionales)
-//   - Payments App (volumen de transacciones, ingresos/comisiones)
-//   - Feedback App (calificaciones, ranking de profesionales)
-//
-// In a real system each function would be an async fetch() to the
-// corresponding service. Here we resolve mocked payloads to mirror that shape.
+// Consume las API routes internas que leen de Supabase via Prisma
+
+import type { Period } from "@/components/analytics/AnalyticsDashboard";
 
 export interface KpiData {
   totalUsers: number
@@ -23,24 +18,24 @@ export interface KpiData {
 }
 
 export interface CategoryDatum {
-  category: "Plomería" | "Gas" | "Electricidad"
-  jobs: number
-  fill: string
+  category: "Plomería" | "Gas" | "Electricidad";
+  jobs: number;
+  fill: string;
 }
 
 export interface SuccessRateDatum {
-  label: string
-  completados: number
-  cancelados: number
+  label: string;
+  completados: number;
+  cancelados: number;
 }
 
 export interface TopProfessional {
-  id: string
-  name: string
-  category: "Plomería" | "Gas" | "Electricidad"
-  rating: number
-  jobs: number
-  city: string
+  id: string;
+  name: string;
+  category: "Plomería" | "Gas" | "Electricidad";
+  rating: number;
+  jobs: number;
+  city: string;
 }
 
 export interface RevenueTrendDatum {
@@ -65,6 +60,22 @@ interface MetricaMensualApi {
   mes: number
   categoria: string | null
   ticketPromedio: number | string
+}
+export interface MetricaMensualDatum {
+  id?: string;
+  anio: number;
+  mes: number;
+  categoria: string | null;
+  trabajosCompletados: number;
+  trabajosCancelados: number;
+  ingresosTotal: number | string;
+  clientesNuevos: number;
+  ticketPromedio: number | string;
+}
+export interface CancelacionDatum {
+  motivo: string;
+  cantidad: number;
+  categoria?: string;
 }
 type ApiCategoria = "PLOMERIA" | "GAS" | "ELECTRICIDAD"
 
@@ -103,7 +114,20 @@ function getGlobalMetricas(metricas: MetricaMensualApi[]): MetricaMensualApi[] {
 }
 // Simulate network latency for a realistic dashboard load
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
+const mesesNombres = [
+  "Ene",
+  "Feb",
+  "Mar",
+  "Abr",
+  "May",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dic",
+];
 // --- Rider App API (clientes) -------------------------------------------------
 async function getClientsCount(): Promise<number> {
   await delay(120)
@@ -188,7 +212,22 @@ async function getFeedbackSummary(): Promise<{
 }
 
 // --- Consolidated KPIs (top row) ---------------------------------------------
-export async function fetchKpis(): Promise<KpiData> {
+function periodToParams(period?: Period): string {
+  if (!period) return "";
+
+  const daysByPeriod: Record<Period, number> = {
+    "30d": 30,
+    "90d": 90,
+    "6m": 180,
+    "1y": 365,
+  };
+
+  const desde = new Date();
+  desde.setDate(desde.getDate() - daysByPeriod[period]);
+
+  return `desde=${desde.toISOString()}`;
+}
+export async function fetchKpis(_period?: Period): Promise<KpiData> {
   const [clients, professionals, payments, feedback] = await Promise.all([
     getClientsCount(),
     getProfessionalsCount(),
@@ -211,37 +250,108 @@ export async function fetchKpis(): Promise<KpiData> {
   }
 }
 
-// --- Rider App Admin endpoint: trabajos por categoría ------------------------
-export async function fetchJobsByCategory(): Promise<CategoryDatum[]> {
-  await delay(130)
+// --- Trabajos por categoría --------------------------------------------------
+export async function fetchJobsByCategory(
+  period: Period = "6m",
+): Promise<CategoryDatum[]> {
+const params = periodToParams(period);
+const query = params ? `estado=COMPLETADO&${params}` : "estado=COMPLETADO";
+const res = await fetch(`/api/trabajos?${query}`);
+  if (!res.ok) throw new Error("Error al cargar trabajos");
+  const trabajos: Array<{ categoria: string }> = await res.json();
+
+  const conteo: Record<string, number> = {
+    PLOMERIA: 0,
+    ELECTRICIDAD: 0,
+    GAS: 0,
+  };
+  for (const t of trabajos) {
+    if (conteo[t.categoria] !== undefined) conteo[t.categoria]++;
+  }
+
   return [
-    { category: "Plomería", jobs: 6240, fill: "var(--color-plumbing)" },
-    { category: "Gas", jobs: 3180, fill: "var(--color-gas)" },
-    { category: "Electricidad", jobs: 4564, fill: "var(--color-electrical)" },
-  ]
+    { category: "Plomería", jobs: conteo.PLOMERIA, fill: "var(--plumbing)" },
+    {
+      category: "Electricidad",
+      jobs: conteo.ELECTRICIDAD,
+      fill: "var(--electrical)",
+    },
+    { category: "Gas", jobs: conteo.GAS, fill: "var(--gas)" },
+  ];
 }
 
-// --- Rider App: tasa de éxito (completados vs cancelados) --------------------
-export async function fetchSuccessRate(): Promise<SuccessRateDatum[]> {
-  await delay(150)
-  return [
-    { label: "Plomería", completados: 5890, cancelados: 350 },
-    { label: "Gas", completados: 2940, cancelados: 240 },
-    { label: "Electricidad", completados: 4154, cancelados: 410 },
-  ]
-}
+// --- Tasa de éxito -----------------------------------------------------------
+export async function fetchSuccessRate(
+  period: Period = "6m",
+): Promise<SuccessRateDatum[]> {
+const params = periodToParams(period);
+const query = params ? `?${params}` : "";
+const res = await fetch(`/api/trabajos${query}`);
+  if (!res.ok) throw new Error("Error al cargar tasa de éxito");
+  const trabajos: Array<{ categoria: string; estado: string }> =
+    await res.json();
 
-// --- Payments App: tendencia de ingresos -------------------------------------
-export async function fetchRevenueTrend(): Promise<RevenueTrendDatum[]> {
-  await delay(140)
+  const conteo: Record<string, { completados: number; cancelados: number }> = {
+    PLOMERIA: { completados: 0, cancelados: 0 },
+    ELECTRICIDAD: { completados: 0, cancelados: 0 },
+    GAS: { completados: 0, cancelados: 0 },
+  };
+  for (const t of trabajos) {
+    if (!conteo[t.categoria]) continue;
+    if (t.estado === "COMPLETADO") conteo[t.categoria].completados++;
+    else if (t.estado === "CANCELADO") conteo[t.categoria].cancelados++;
+  }
+
   return [
-    { month: "Jul", ingresos: 18_900_000, transacciones: 1820 },
-    { month: "Ago", ingresos: 21_300_000, transacciones: 2040 },
-    { month: "Sep", ingresos: 19_800_000, transacciones: 1960 },
-    { month: "Oct", ingresos: 24_500_000, transacciones: 2310 },
-    { month: "Nov", ingresos: 26_100_000, transacciones: 2480 },
-    { month: "Dic", ingresos: 27_652_500, transacciones: 2620 },
-  ]
+    { label: "Plomería", ...conteo.PLOMERIA },
+    { label: "Electricidad", ...conteo.ELECTRICIDAD },
+    { label: "Gas", ...conteo.GAS },
+  ];
+}
+// --- Tendencia de ingresos ---------------------------------------------------
+export async function fetchRevenueTrend(
+  period: Period = "6m",
+): Promise<RevenueTrendDatum[]> {
+  const anioActual = new Date().getFullYear();
+  const mesActual = new Date().getMonth() + 1;
+
+  const [resActual, resAnterior] = await Promise.all([
+    fetch(`/api/metricas?anio=${anioActual}`),
+    fetch(`/api/metricas?anio=${anioActual - 1}`),
+  ]);
+
+  const dataActual: MetricaMensualDatum[] = resActual.ok
+    ? await resActual.json()
+    : [];
+  const dataAnterior: MetricaMensualDatum[] = resAnterior.ok
+    ? await resAnterior.json()
+    : [];
+
+  const globalesActual = dataActual.filter((m) => !m.categoria);
+  const globalesAnterior = dataAnterior.filter((m) => !m.categoria);
+
+  // Cantidad de meses según el período
+  const cantMeses =
+    period === "30d" ? 1 : period === "90d" ? 3 : period === "6m" ? 6 : 12;
+
+  const resultado: MetricaMensualDatum[] = [];
+  for (let i = cantMeses - 1; i >= 0; i--) {
+    let mes = mesActual - i;
+    let anio = anioActual;
+    if (mes <= 0) {
+      mes += 12;
+      anio -= 1;
+    }
+    const fuente = anio === anioActual ? globalesActual : globalesAnterior;
+    const datum = fuente.find((m) => m.mes === mes && m.anio === anio);
+    if (datum) resultado.push(datum);
+  }
+
+  return resultado.map((m) => ({
+    month: mesesNombres[m.mes - 1],
+    ingresos: Number(m.ingresosTotal),
+    transacciones: m.trabajosCompletados + m.trabajosCancelados,
+  }));
 }
 export async function fetchRevenueByCategory(): Promise<RevenueByCategoryDatum[]> {
   try {
@@ -321,14 +431,55 @@ export async function fetchRevenueByCategory(): Promise<RevenueByCategoryDatum[]
 }
 // --- Feedback / Driver App: top profesionales --------------------------------
 export async function fetchTopProfessionals(): Promise<TopProfessional[]> {
-  await delay(120)
-  return [
-    { id: "p1", name: "Rodrigo Salas", category: "Plomería", rating: 4.98, jobs: 342, city: "Santiago" },
-    { id: "p2", name: "Valentina Rojas", category: "Electricidad", rating: 4.96, jobs: 318, city: "Providencia" },
-    { id: "p3", name: "Matías Fuentes", category: "Gas", rating: 4.94, jobs: 287, city: "Las Condes" },
-    { id: "p4", name: "Camila Herrera", category: "Plomería", rating: 4.92, jobs: 301, city: "Ñuñoa" },
-    { id: "p5", name: "Diego Morales", category: "Electricidad", rating: 4.9, jobs: 264, city: "Maipú" },
-  ]
+  const res = await fetch("/api/profesionales?limit=5");
+  if (!res.ok) throw new Error("Error al cargar profesionales");
+  const data: Array<{
+    id: string;
+    nombre: string;
+    categoria: string;
+    calificacionPromedio: number;
+    totalTrabajos: number;
+    ciudad: string;
+  }> = await res.json();
+
+  const categoryMap: Record<string, "Plomería" | "Gas" | "Electricidad"> = {
+    PLOMERIA: "Plomería",
+    ELECTRICIDAD: "Electricidad",
+    GAS: "Gas",
+  };
+
+  return data.map((p) => ({
+    id: p.id,
+    name: p.nombre,
+    category: categoryMap[p.categoria],
+    rating: p.calificacionPromedio,
+    jobs: p.totalTrabajos,
+    city: p.ciudad,
+  }));
+}
+
+// --- Métricas mensuales (para comparativa) -----------------------------------
+export async function fetchMetricasMensuales(
+  period: Period,
+): Promise<MetricaMensualDatum[]> {
+  const anio = new Date().getFullYear();
+  const res = await fetch(`/api/metricas?anio=${anio}`);
+  if (!res.ok) throw new Error("Error al cargar métricas mensuales");
+  const data: MetricaMensualDatum[] = await res.json();
+
+  // Solo globales (sin categoría)
+  const globales = data.filter((m) => !m.categoria);
+
+  const cantidad =
+    period === "30d" ? 1 : period === "90d" ? 3 : period === "6m" ? 6 : 12;
+  return globales.slice(-cantidad);
+}
+
+// --- Cancelaciones agrupadas -------------------------------------------------
+export async function fetchCancelaciones(): Promise<CancelacionDatum[]> {
+  const res = await fetch("/api/trabajos/cancelaciones");
+  if (!res.ok) throw new Error("Error al cargar cancelaciones");
+  return res.json();
 }
 
 // --- Formatting helpers ------------------------------------------------------
@@ -337,15 +488,15 @@ export function formatCLP(value: number): string {
     style: "currency",
     currency: "CLP",
     maximumFractionDigits: 0,
-  }).format(value)
+  }).format(value);
 }
 
 export function formatCompactCLP(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
-  return `$${value}`
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
+  return `$${value}`;
 }
 
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat("es-CL").format(value)
+  return new Intl.NumberFormat("es-CL").format(value);
 }

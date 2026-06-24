@@ -18,18 +18,14 @@ export async function GET(request: Request) {
     where: {
       ...(categoria && { categoria: categoria as any }),
       ...(estado && { estado: estado as any }),
-      ...(desde || hasta
-        ? {
-            fechaCreacion: {
-              ...(desde && { gte: new Date(desde) }),
-              ...(hasta && { lte: new Date(hasta) }),
-            },
-          }
-        : {}),
+      ...((desde || hasta) && {
+        fechaCreacion: {
+          ...(desde && { gte: new Date(desde) }),
+          ...(hasta && { lte: new Date(hasta) }),
+        },
+      }),
     },
-    include: {
-      motivoCancelacion: true,
-    },
+    include: { motivoCancelacion: true },
     orderBy: { fechaCreacion: "desc" },
   });
 
