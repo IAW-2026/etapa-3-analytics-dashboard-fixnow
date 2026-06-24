@@ -67,7 +67,7 @@ const cards: KpiCard[] = [
   },
   {
   key: "averageTicket",
-  label: "Ticket Promedio Global",
+  label: "Valor Promedio por Pedido",
   icon: ReceiptText,
   source: "Payments App",
   accent: "var(--brand-accent)",
