@@ -47,6 +47,11 @@ export interface AverageTicketDatum {
   month: string;
   ticketPromedio: number;
 }
+export interface AverageTicketByCategoryDatum {
+  category: "Plomería" | "Gas" | "Electricidad";
+  ticket: number;
+  fill: string;
+}
 export interface RevenueByCategoryDatum {
   category: "Plomería" | "Gas" | "Electricidad"
   ingresos: number
@@ -486,6 +491,23 @@ export async function fetchCancelaciones(): Promise<CancelacionDatum[]> {
   return res.json();
 }
 
+// --- Alertas de calidad ------------------------------------------------------
+export interface AlertaProfesional {
+  id: string;
+  nombre: string;
+  categoria: string;
+  ciudad: string;
+  calificacionPromedio: number;
+  totalCancelaciones: number;
+  totalTrabajos: number;
+}
+
+export async function fetchAlertas(): Promise<AlertaProfesional[]> {
+  const res = await fetch("/api/profesionales/alertas");
+  if (!res.ok) throw new Error("Error al cargar alertas de calidad");
+  return res.json();
+}
+
 // --- Distribución de ratings -------------------------------------------------
 export interface RatingBucket {
   estrellas: number;
@@ -520,7 +542,7 @@ export function formatNumber(value: number): string {
 // --- Ticket promedio por servicio ------------------------------------------------
 export async function fetchAverageTicket(
   period: Period = "6m",
-): Promise<AverageTicketDatum[]> {
+): Promise<AverageTicketByCategoryDatum[]> {
   const anioActual = new Date().getFullYear();
   const mesActual = new Date().getMonth() + 1;
 
