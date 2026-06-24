@@ -146,56 +146,59 @@ async function main() {
     },
   ];
 
-  for (const m of metricas) {
-    // Global (sin categoría)
-    await prisma.metricaMensual.create({
-      data: {
-        anio: 2024,
-        mes: m.mes,
-        categoria: null,
-        trabajosCompletados: m.completados,
-        trabajosCancelados: m.cancelados,
-        ingresosTotal: m.ingresos,
-        clientesNuevos: m.nuevos,
-        ticketPromedio: m.ticket,
-      },
-    });
+  for (const anio of [2024, 2025, 2026]) {
+    for (const m of metricas) {
+      // Variación leve entre años para que los gráficos sean interesantes
+      const factor = anio === 2024 ? 0.8 : anio === 2025 ? 0.9 : 1.0;
 
-    // Por categoría
-    await prisma.metricaMensual.createMany({
-      data: [
-        {
-          anio: 2024,
+      await prisma.metricaMensual.create({
+        data: {
+          anio,
           mes: m.mes,
-          categoria: "PLOMERIA",
-          trabajosCompletados: Math.round(m.completados * 0.446),
-          trabajosCancelados: Math.round(m.cancelados * 0.4),
-          ingresosTotal: Math.round(m.ingresos * 0.38),
-          clientesNuevos: Math.round(m.nuevos * 0.44),
-          ticketPromedio: Math.round(m.ticket * 0.85),
+          categoria: null,
+          trabajosCompletados: Math.round(m.completados * factor),
+          trabajosCancelados: Math.round(m.cancelados * factor),
+          ingresosTotal: Math.round(m.ingresos * factor),
+          clientesNuevos: Math.round(m.nuevos * factor),
+          ticketPromedio: Math.round(m.ticket * factor),
         },
-        {
-          anio: 2024,
-          mes: m.mes,
-          categoria: "ELECTRICIDAD",
-          trabajosCompletados: Math.round(m.completados * 0.326),
-          trabajosCancelados: Math.round(m.cancelados * 0.35),
-          ingresosTotal: Math.round(m.ingresos * 0.37),
-          clientesNuevos: Math.round(m.nuevos * 0.33),
-          ticketPromedio: Math.round(m.ticket * 1.13),
-        },
-        {
-          anio: 2024,
-          mes: m.mes,
-          categoria: "GAS",
-          trabajosCompletados: Math.round(m.completados * 0.227),
-          trabajosCancelados: Math.round(m.cancelados * 0.25),
-          ingresosTotal: Math.round(m.ingresos * 0.25),
-          clientesNuevos: Math.round(m.nuevos * 0.23),
-          ticketPromedio: Math.round(m.ticket * 1.1),
-        },
-      ],
-    });
+      });
+
+      await prisma.metricaMensual.createMany({
+        data: [
+          {
+            anio,
+            mes: m.mes,
+            categoria: "PLOMERIA",
+            trabajosCompletados: Math.round(m.completados * 0.446 * factor),
+            trabajosCancelados: Math.round(m.cancelados * 0.4 * factor),
+            ingresosTotal: Math.round(m.ingresos * 0.38 * factor),
+            clientesNuevos: Math.round(m.nuevos * 0.44 * factor),
+            ticketPromedio: Math.round(m.ticket * 0.85),
+          },
+          {
+            anio,
+            mes: m.mes,
+            categoria: "ELECTRICIDAD",
+            trabajosCompletados: Math.round(m.completados * 0.326 * factor),
+            trabajosCancelados: Math.round(m.cancelados * 0.35 * factor),
+            ingresosTotal: Math.round(m.ingresos * 0.37 * factor),
+            clientesNuevos: Math.round(m.nuevos * 0.33 * factor),
+            ticketPromedio: Math.round(m.ticket * 1.13),
+          },
+          {
+            anio,
+            mes: m.mes,
+            categoria: "GAS",
+            trabajosCompletados: Math.round(m.completados * 0.227 * factor),
+            trabajosCancelados: Math.round(m.cancelados * 0.25 * factor),
+            ingresosTotal: Math.round(m.ingresos * 0.25 * factor),
+            clientesNuevos: Math.round(m.nuevos * 0.23 * factor),
+            ticketPromedio: Math.round(m.ticket * 1.1),
+          },
+        ],
+      });
+    }
   }
 
   // ─── 3. Trabajos con motivos de cancelación ────────────────
@@ -233,11 +236,9 @@ async function main() {
   for (let i = 0; i < 200; i++) {
     const categoria = categorias[Math.floor(Math.random() * 3)];
     const esCancelado = Math.random() < 0.08; // ~8% cancelación
-    const fechaCreacion = new Date(
-      2024,
-      Math.floor(Math.random() * 12),
-      Math.floor(Math.random() * 28) + 1,
-    );
+    const diasAtras = Math.floor(Math.random() * 365);
+    const fechaCreacion = new Date();
+    fechaCreacion.setDate(fechaCreacion.getDate() - diasAtras);
 
     const trabajo = await prisma.trabajoResumen.create({
       data: {
@@ -287,7 +288,7 @@ async function main() {
       ingreso: 15400000,
     },
     {
-      nombre: "Valentina Rojas",
+      nombre: "Juana Rojas",
       categoria: "ELECTRICIDAD",
       ciudad: "Providencia",
       rating: 4.96,
