@@ -31,10 +31,10 @@ type PaymentStatusDatum = {
 }
 
 const STATUS_COLORS: Record<PaymentStatusKey, string> = {
-  paid: "#22c55e",
+  paid: "#4c9868",
   pending: "#eab308",
   processing: "var(--primary)",
-  failed: "var(--destructive)",
+  failed: "#D28A71",
 }
 
 const fetcher = async (url: string) => {
