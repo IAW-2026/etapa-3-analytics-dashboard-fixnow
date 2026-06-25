@@ -16,6 +16,7 @@ import { useState } from "react";
 import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
 import { AnalisisComparativaChart } from "@/components/analytics/AnalisisComparativaChart";
 import { AnalisisCancelaciones } from "@/components/analytics/AnalisisCancelaciones";
+import { AnalisisInsightsBanner } from "@/components/analytics/AnalisisInsightsBanner";
 
 export type Period = "30d" | "90d" | "6m" | "1y";
 
@@ -110,7 +111,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
 
         {currentView === "analisis" && (
           <>
-            <KpiCards period={period} />
+            <AnalisisInsightsBanner period={period} />
             <AnalisisCharts period={period} />
             <AnalisisComparativaChart period={period} />
             <AnalisisCancelaciones period={period} />
