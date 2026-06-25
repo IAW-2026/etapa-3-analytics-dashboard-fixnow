@@ -65,10 +65,11 @@ Vista orientada a la Inteligencia de Negocios (BI) y el análisis operacional de
 
 Vista focalizada en el desempeño individual de los profesionales:
 
-1. **Top Profesionales con filtros** — Filtrá el ranking por categoría de servicio y ciudad para encontrar los mejores profesionales en cada segmento.
+1. **Top Profesionales con filtros** — Filtrá el ranking por categoría de servicio (Plomería / Electricidad / Gas) y por ciudad. Los botones de categoría adoptan el color identificatorio de cada oficio. La lista de ciudades disponibles se carga dinámicamente desde la base de datos.
 2. **Ranking financiero estimado de profesionales** — Ranking generado desde Payments App que identifica qué profesionales aportan mayor facturación estimada a la plataforma. El cálculo cruza los trabajos registrados con los datos de profesionales disponibles, mostrando total generado, comisión estimada para FixNow, cantidad de trabajos y monto promedio por servicio.
-3. **Distribución de ratings** — Histograma de estrellas mostrando cuántas reseñas acumuló la plataforma en cada nivel (1 a 5 estrellas).
-4. **Alertas de calidad** — Tabla de profesionales con indicadores de riesgo: rating por debajo del umbral mínimo o alta tasa de cancelaciones. Permite tomar acción proactiva antes de que afecten la experiencia del cliente.
+3. **Distribución de ratings** — Histograma de barras con escala de color progresiva (rojo → naranja → amarillo → verde) que muestra cuántas reseñas acumuló la plataforma en cada nivel de 1 a 5 estrellas. El total de reseñas se refleja en el subtítulo de la card.
+4. **Tasa de aceptación de reseñas** — Donut chart con el porcentaje de aceptación en el centro, acompañado del conteo absoluto y relativo de reseñas aceptadas y rechazadas, y una barra de progreso que refuerza la proporción visualmente.
+5. **Alertas de calidad** — Tabla de profesionales activos que superan alguno de los umbrales de riesgo: rating promedio por debajo de 3.5 o más de 10 cancelaciones. Cada fila muestra la tasa de cancelación calculada sobre el total de trabajos, y clasifica el riesgo en **Alto** (rating < 3.0 o cancelaciones > 20) o **Medio** para el resto. Los valores que disparan la alerta se destacan en rojo.
 
 ---
 
@@ -87,16 +88,17 @@ El dashboard mantiene su propia base de datos con tablas optimizadas para lectur
 
 **Fuentes de datos por sección:**
 
-| Sección                         | Fuente                         |
-| ------------------------------- | ------------------------------ |
-| Usuarios totales                | Rider App + Driver App         |
-| Volumen e ingresos              | Payments App                   |
-| Resumen financiero              | Payments App                   |
-| Estado de pagos                 | Payments App                   |
-| Ranking financiero profesional  | Payments App + Driver App      |
-| Satisfacción y ratings          | Feedback App                   |
-| Trabajos y cancelaciones        | Rider App                      |
-| Profesionales                   | Driver App + Feedback App      |
+| Sección                        | Fuente                    |
+| ------------------------------ | ------------------------- |
+| Usuarios totales               | Rider App + Driver App    |
+| Volumen e ingresos             | Payments App              |
+| Resumen financiero             | Payments App              |
+| Estado de pagos                | Payments App              |
+| Ranking financiero profesional | Payments App + Driver App |
+| Satisfacción y ratings         | Feedback App              |
+| Tasa de aceptación de reseñas  | Feedback App              |
+| Trabajos y cancelaciones       | Rider App                 |
+| Profesionales                  | Driver App + Feedback App |
 
 **Decisiones de diseño y rendimiento:**
 
@@ -114,3 +116,20 @@ El dashboard mantiene su propia base de datos con tablas optimizadas para lectur
 - **Ranking Financiero sin modificar Backend:** El ranking financiero de profesionales se calcula desde el frontend utilizando endpoints ya existentes. Se cruzan datos de trabajos y profesionales para estimar la facturación generada por cada profesional, la comisión correspondiente para FixNow y el promedio por servicio, evitando cambios en las rutas del backend.
 
 - **Separación de lógica financiera:** Los componentes relacionados con Payments App se modularizaron en archivos independientes, como `FinancialKpiCard.tsx`, `PaymentsFinancialInsight.tsx`, `PaymentStatusChart.tsx`, `ProfessionalRevenueRanking.tsx` y `ExportFinancialExcelButton.tsx`. Esto mantiene el dashboard ordenado y reduce el riesgo de conflictos con componentes de otras apps.
+
+- **Filtrado Dinámico con Re-fetch Selectivo (SWR):** Los filtros de Top Profesionales (categoría y ciudad) usan una clave de caché compuesta (`top-professionals-{categoria}-{ciudad}`), de modo que SWR re-fetchea únicamente cuando cambia el filtro activo, sin invalidar el resto de la caché del dashboard.
+
+- **Clasificación de Riesgo en Servidor:** La lógica de alertas de calidad se resuelve en la API route (`/api/profesionales/alertas`) mediante una query con `OR` en Prisma, enviando al cliente únicamente los registros que superan los umbrales. La clasificación secundaria Alto/Medio se calcula en el componente con los datos ya filtrados, sin llamadas adicionales.
+
+- **Histograma Calculado desde Datos Granulares:** La distribución de ratings se deriva de `TrabajoResumen.calificacion` (ratings individuales por trabajo) en lugar de usar el promedio de `ProfesionalResumen`, lo que refleja el volumen real de reseñas por nivel de estrella.
+
+- **Extensión de Schema con Compatibilidad hacia Atrás:** Los campos `reseñasAceptadas` y `reseñasRechazadas` se agregaron a `SnapshotKPI` con `@default(0)`, de modo que los registros existentes no se rompen y el sync usa `?? 0` al leer de la Feedback App, permitiendo un rollout gradual sin bloquear la funcionalidad si la app externa aún no expone esos campos.
+
+**Contrato de integración — Feedback App (`GET /analytics`):**
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `calificacionPromedio` | `Float` | Promedio global de todas las reseñas |
+| `totalReseñas` | `Int` | Total de reseñas recibidas |
+| `reseñasAceptadas` | `Int` | Reseñas que pasaron moderación / fueron publicadas |
+| `reseñasRechazadas` | `Int` | Reseñas rechazadas por moderación |
