@@ -439,8 +439,19 @@ export async function fetchRevenueByCategory(): Promise<RevenueByCategoryDatum[]
   }
 }
 // --- Feedback / Driver App: top profesionales --------------------------------
-export async function fetchTopProfessionals(): Promise<TopProfessional[]> {
-  const res = await fetch("/api/profesionales?limit=5");
+export interface TopProfessionalsFilters {
+  categoria?: string;
+  ciudad?: string;
+}
+
+export async function fetchTopProfessionals(
+  filters: TopProfessionalsFilters = {},
+): Promise<TopProfessional[]> {
+  const params = new URLSearchParams({ limit: "10" });
+  if (filters.categoria) params.set("categoria", filters.categoria);
+  if (filters.ciudad) params.set("ciudad", filters.ciudad);
+
+  const res = await fetch(`/api/profesionales?${params}`);
   if (!res.ok) throw new Error("Error al cargar profesionales");
   const data: Array<{
     id: string;
@@ -465,6 +476,12 @@ export async function fetchTopProfessionals(): Promise<TopProfessional[]> {
     jobs: p.totalTrabajos,
     city: p.ciudad,
   }));
+}
+
+export async function fetchCiudades(): Promise<string[]> {
+  const res = await fetch("/api/profesionales/ciudades");
+  if (!res.ok) throw new Error("Error al cargar ciudades");
+  return res.json();
 }
 
 // --- Métricas mensuales (para comparativa) -----------------------------------
