@@ -1,5 +1,6 @@
 "use client";
-
+import { ProfessionalRevenueRanking } from "@/components/analytics/ProfessionalRevenueRanking";
+import { PaymentsFinancialInsight } from "@/components/analytics/PaymentsFinancialInsight";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KpiCards } from "@/components/analytics/KpiCards";
@@ -112,6 +113,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
         {currentView === "analisis" && (
           <>
             <AnalisisInsightsBanner period={period} />
+            <PaymentsFinancialInsight period={period} />
             <AnalisisCharts period={period} />
             <AnalisisComparativaChart period={period} />
             <AnalisisCancelaciones period={period} />
@@ -121,8 +123,8 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
 
         {currentView === "monitoreo" && (
           <>
-            <KpiCards />
             <TopProfessionals />
+            <ProfessionalRevenueRanking />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <RatingHistogram />
               <AlertasCalidad />

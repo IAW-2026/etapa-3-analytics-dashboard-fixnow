@@ -689,3 +689,162 @@ export async function fetchComparativaMensual(
     nuevos: m.clientesNuevos,
   }));
 }
+export type ProfessionalRevenueRow = {
+  professionalId: string;
+  professionalName: string;
+  totalRevenue: number;
+  completedJobs: number;
+  fixNowCommission: number;
+  averageAmount: number;
+};
+
+// Funciones auxiliares privadas para procesar los trabajos
+function getString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getNumber(value: unknown): number {
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+
+export async function fetchProfessionalRevenueRanking(): Promise<
+  ProfessionalRevenueRow[]
+> {
+  const [trabajosResponse, profesionalesResponse] = await Promise.all([
+    fetch("/api/trabajos", { cache: "no-store" }),
+    fetch("/api/profesionales?limit=100", { cache: "no-store" }),
+  ]);
+
+  if (!trabajosResponse.ok) {
+    throw new Error("No se pudieron cargar los trabajos");
+  }
+
+  if (!profesionalesResponse.ok) {
+    throw new Error("No se pudieron cargar los profesionales");
+  }
+
+  const trabajosData = await trabajosResponse.json();
+  const profesionalesData = await profesionalesResponse.json();
+
+  let jobs: Record<string, unknown>[] = [];
+
+  if (Array.isArray(trabajosData)) {
+    jobs = trabajosData.filter(isRecord);
+  } else if (isRecord(trabajosData)) {
+    const possibleKeys = ["trabajos", "jobs", "data", "items"];
+
+    for (const key of possibleKeys) {
+      if (Array.isArray(trabajosData[key])) {
+        jobs = trabajosData[key].filter(isRecord);
+        break;
+      }
+    }
+  }
+
+  const professionals = Array.isArray(profesionalesData)
+    ? profesionalesData.filter(isRecord)
+    : [];
+
+  const categoryTotals: Record<string, { revenue: number; jobs: number }> = {
+    PLOMERIA: { revenue: 0, jobs: 0 },
+    ELECTRICIDAD: { revenue: 0, jobs: 0 },
+    GAS: { revenue: 0, jobs: 0 },
+  };
+
+  for (const job of jobs) {
+    const status = (
+      getString(job.estado) ||
+      getString(job.status) ||
+      getString(job.jobStatus)
+    ).toLowerCase();
+
+    const isCompleted =
+      status === "completado" ||
+      status === "completed" ||
+      status === "paid" ||
+      status === "pagado" ||
+      status === "finalizado";
+
+    if (!isCompleted) continue;
+
+    const category = (
+      getString(job.categoria) ||
+      getString(job.category) ||
+      getString(job.serviceType)
+    ).toUpperCase();
+
+    const amount = getNumber(
+      job.monto ||
+        job.amount ||
+        job.total ||
+        job.montoTotal ||
+        job.totalAmount ||
+        job.precio ||
+        job.valor ||
+        job.price,
+    );
+
+    if (!categoryTotals[category]) continue;
+
+    categoryTotals[category].revenue += amount;
+    categoryTotals[category].jobs += 1;
+  }
+
+  const averageAmountByCategory: Record<string, number> = {
+    PLOMERIA:
+      categoryTotals.PLOMERIA.jobs > 0
+        ? categoryTotals.PLOMERIA.revenue / categoryTotals.PLOMERIA.jobs
+        : 0,
+    ELECTRICIDAD:
+      categoryTotals.ELECTRICIDAD.jobs > 0
+        ? categoryTotals.ELECTRICIDAD.revenue / categoryTotals.ELECTRICIDAD.jobs
+        : 0,
+    GAS:
+      categoryTotals.GAS.jobs > 0
+        ? categoryTotals.GAS.revenue / categoryTotals.GAS.jobs
+        : 0,
+  };
+
+  return professionals
+    .map((professional): ProfessionalRevenueRow => {
+      const professionalId = getString(professional.id) || "Sin ID";
+
+      const professionalName =
+        getString(professional.nombre) ||
+        getString(professional.name) ||
+        getString(professional.fullName) ||
+        `Profesional ${professionalId.slice(0, 8)}`;
+
+      const category = (
+        getString(professional.categoria) ||
+        getString(professional.category)
+      ).toUpperCase();
+
+      const completedJobs =
+        getNumber(professional.totalTrabajos) ||
+        getNumber(professional.jobs) ||
+        getNumber(professional.completedJobs);
+
+      const averageAmount = averageAmountByCategory[category] || 0;
+      const totalRevenue = completedJobs * averageAmount;
+      const fixNowCommission = totalRevenue * 0.15;
+
+      return {
+        professionalId,
+        professionalName,
+        totalRevenue,
+        completedJobs,
+        fixNowCommission,
+        averageAmount,
+      };
+    })
+    .filter((professional) => professional.completedJobs > 0)
+    .sort((a, b) => b.totalRevenue - a.totalRevenue)
+    .slice(0, 5);
+}
