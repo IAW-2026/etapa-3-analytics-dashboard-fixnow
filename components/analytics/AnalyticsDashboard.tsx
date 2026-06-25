@@ -14,6 +14,7 @@ import { AlertasCalidad } from "@/components/analytics/AlertasCalidad";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
 import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
+import { AnalisisComparativaChart } from "@/components/analytics/AnalisisComparativaChart";
 
 export type Period = "30d" | "90d" | "6m" | "1y";
 
@@ -100,7 +101,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
             <AnalyticsCharts />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <RevenueTrendChart />
-            <RevenueByCategoryChart />
+              <RevenueByCategoryChart />
             </div>
             <TopProfessionals />
           </>
@@ -110,7 +111,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <>
             <KpiCards period={period} />
             <AnalisisCharts period={period} />
-            <RevenueTrendChart period={period} />
+            <AnalisisComparativaChart period={period} />
           </>
         )}
 
