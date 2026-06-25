@@ -539,6 +539,24 @@ export async function fetchRatingDistribution(): Promise<RatingBucket[]> {
   return res.json();
 }
 
+// --- Tasa de aceptación/rechazo de reseñas ----------------------------------
+export interface ReseñasStats {
+  aceptadas: number;
+  rechazadas: number;
+  total: number;
+}
+
+export async function fetchReseñasStats(): Promise<ReseñasStats> {
+  const res = await fetch("/api/kpis");
+  if (!res.ok) throw new Error("Error al cargar stats de reseñas");
+  const snap = await res.json();
+  return {
+    aceptadas: snap.reseñasAceptadas ?? 0,
+    rechazadas: snap.reseñasRechazadas ?? 0,
+    total: snap.totalReseñas ?? 0,
+  };
+}
+
 // --- Formatting helpers ------------------------------------------------------
 export function formatCLP(value: number): string {
   return new Intl.NumberFormat("es-CL", {

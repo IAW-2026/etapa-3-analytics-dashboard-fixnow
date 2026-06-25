@@ -28,6 +28,8 @@ model SnapshotKPI {
   pedidosCompletados   Int
   calificacionPromedio Float
   totalReseñas         Int
+  reseñasAceptadas     Int      @default(0)
+  reseñasRechazadas    Int      @default(0)
   creadoEn             DateTime @default(now())
 }
 

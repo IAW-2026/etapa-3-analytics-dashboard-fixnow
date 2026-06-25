@@ -29,6 +29,8 @@ export async function syncSnapshot(fecha: string) {
     : 0;
   const calificacionPromedio = feedbackData.calificacionPromedio;
   const totalReseñas = feedbackData.totalReseñas;
+  const reseñasAceptadas = feedbackData.reseñasAceptadas ?? 0;
+  const reseñasRechazadas = feedbackData.reseñasRechazadas ?? 0;
 
   const snapshot = await prisma.snapshotKPI.upsert({
     where: { fecha: new Date(fecha) },
@@ -41,6 +43,8 @@ export async function syncSnapshot(fecha: string) {
       pedidosCompletados,
       calificacionPromedio,
       totalReseñas,
+      reseñasAceptadas,
+      reseñasRechazadas,
     },
     create: {
       fecha: new Date(fecha),
@@ -52,6 +56,8 @@ export async function syncSnapshot(fecha: string) {
       pedidosCompletados,
       calificacionPromedio,
       totalReseñas,
+      reseñasAceptadas,
+      reseñasRechazadas,
     }
   });
 

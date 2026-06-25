@@ -12,6 +12,7 @@ import { RevenueTrendChart } from "@/components/analytics/RevenueTrendChart";
 import { TopProfessionals } from "@/components/analytics/TopProfessionals";
 import { RatingHistogram } from "@/components/analytics/RatingHistogram";
 import { AlertasCalidad } from "@/components/analytics/AlertasCalidad";
+import { ReseñasDonut } from "@/components/analytics/ReseñasDonut";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
 import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
@@ -127,8 +128,9 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
             <ProfessionalRevenueRanking />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <RatingHistogram />
-              <AlertasCalidad />
+              <ReseñasDonut />
             </div>
+            <AlertasCalidad />
           </>
         )}
       </div>
