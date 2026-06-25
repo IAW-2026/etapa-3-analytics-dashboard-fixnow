@@ -4,17 +4,17 @@
 import type { Period } from "@/components/analytics/AnalyticsDashboard";
 
 export interface KpiData {
-  totalUsers: number
-  totalClients: number
-  totalProfessionals: number
-  transactionVolume: number
-  netRevenue: number
-  averageTicket: number
-  averageTicketTrend: string
-  globalRating: number
-  totalReviews: number
-  completedOrders: number
-  activeUsers: number
+  totalUsers: number;
+  totalClients: number;
+  totalProfessionals: number;
+  transactionVolume: number;
+  netRevenue: number;
+  averageTicket: number;
+  averageTicketTrend: string;
+  globalRating: number;
+  totalReviews: number;
+  completedOrders: number;
+  activeUsers: number;
 }
 
 export interface CategoryDatum {
@@ -39,32 +39,37 @@ export interface TopProfessional {
 }
 
 export interface RevenueTrendDatum {
-  month: string
-  ingresos: number
-  transacciones: number
+  month: string;
+  ingresos: number;
+  transacciones: number;
 }
 export interface AverageTicketDatum {
   category: "Plomería" | "Gas" | "Electricidad";
   ticket: number;
   fill: string;
 }
+export interface AverageTicketByCategoryDatum {
+  category: "Plomería" | "Gas" | "Electricidad";
+  ticket: number;
+  fill: string;
+}
 export interface RevenueByCategoryDatum {
-  category: "Plomería" | "Gas" | "Electricidad"
-  ingresos: number
-  comision: number
-  fill: string
+  category: "Plomería" | "Gas" | "Electricidad";
+  ingresos: number;
+  comision: number;
+  fill: string;
 }
 interface SnapshotKpiApi {
-  volumenTransacciones: number | string
-  ingresosNetos: number | string
-  pedidosCompletados: number
+  volumenTransacciones: number | string;
+  ingresosNetos: number | string;
+  pedidosCompletados: number;
 }
 
 interface MetricaMensualApi {
-  anio: number
-  mes: number
-  categoria: string | null
-  ticketPromedio: number | string
+  anio: number;
+  mes: number;
+  categoria: string | null;
+  ticketPromedio: number | string;
 }
 export interface MetricaMensualDatum {
   id?: string;
@@ -82,43 +87,45 @@ export interface CancelacionDatum {
   cantidad: number;
   categoria?: string;
 }
-type ApiCategoria = "PLOMERIA" | "GAS" | "ELECTRICIDAD"
+type ApiCategoria = "PLOMERIA" | "GAS" | "ELECTRICIDAD";
 
 interface TrabajoResumenApi {
-  categoria: ApiCategoria
-  estado: "COMPLETADO" | "CANCELADO" | "EN_PROGRESO"
-  monto: number | string | null
-  comisionFixNow: number | string | null
+  categoria: ApiCategoria;
+  estado: "COMPLETADO" | "CANCELADO" | "EN_PROGRESO";
+  monto: number | string | null;
+  comisionFixNow: number | string | null;
 }
 
 function toNumber(value: number | string | null | undefined): number {
-  if (value === null || value === undefined) return 0
-  return Number(value)
+  if (value === null || value === undefined) return 0;
+  return Number(value);
 }
-function mapCategory(category: ApiCategoria): "Plomería" | "Gas" | "Electricidad" {
-  if (category === "PLOMERIA") return "Plomería"
-  if (category === "GAS") return "Gas"
-  return "Electricidad"
+function mapCategory(
+  category: ApiCategoria,
+): "Plomería" | "Gas" | "Electricidad" {
+  if (category === "PLOMERIA") return "Plomería";
+  if (category === "GAS") return "Gas";
+  return "Electricidad";
 }
 function calculateTrend(current: number, previous: number): string {
-  if (!previous) return "+0.0%"
+  if (!previous) return "+0.0%";
 
-  const value = ((current - previous) / previous) * 100
-  const sign = value >= 0 ? "+" : ""
+  const value = ((current - previous) / previous) * 100;
+  const sign = value >= 0 ? "+" : "";
 
-  return `${sign}${value.toFixed(1)}%`
+  return `${sign}${value.toFixed(1)}%`;
 }
 
 function getGlobalMetricas(metricas: MetricaMensualApi[]): MetricaMensualApi[] {
   return [...metricas]
     .filter((metrica) => metrica.categoria === null)
     .sort((a, b) => {
-      if (a.anio !== b.anio) return a.anio - b.anio
-      return a.mes - b.mes
-    })
+      if (a.anio !== b.anio) return a.anio - b.anio;
+      return a.mes - b.mes;
+    });
 }
 // Simulate network latency for a realistic dashboard load
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const mesesNombres = [
   "Ene",
   "Feb",
@@ -135,85 +142,82 @@ const mesesNombres = [
 ];
 // --- Rider App API (clientes) -------------------------------------------------
 async function getClientsCount(): Promise<number> {
-  await delay(120)
-  return 4820
+  await delay(120);
+  return 4820;
 }
 
 // --- Driver App API (profesionales) ------------------------------------------
 async function getProfessionalsCount(): Promise<number> {
-  await delay(140)
-  return 612
+  await delay(140);
+  return 612;
 }
 
 // --- Payments App API --------------------------------------------------------
 async function getPaymentsSummary(): Promise<{
-  transactionVolume: number
-  netRevenue: number
-  completedOrders: number
-  averageTicket: number
-  averageTicketTrend: string
+  transactionVolume: number;
+  netRevenue: number;
+  completedOrders: number;
+  averageTicket: number;
+  averageTicketTrend: string;
 }> {
   try {
     const [snapshotResponse, metricasResponse] = await Promise.all([
       fetch("/api/kpis", { cache: "no-store" }),
       fetch("/api/metricas", { cache: "no-store" }),
-    ])
+    ]);
 
     if (!snapshotResponse.ok || !metricasResponse.ok) {
-      throw new Error("No se pudieron obtener los datos consolidados")
+      throw new Error("No se pudieron obtener los datos consolidados");
     }
 
-    const snapshot = (await snapshotResponse.json()) as SnapshotKpiApi
-    const metricas = (await metricasResponse.json()) as MetricaMensualApi[]
+    const snapshot = (await snapshotResponse.json()) as SnapshotKpiApi;
+    const metricas = (await metricasResponse.json()) as MetricaMensualApi[];
 
-    const globalMetricas = getGlobalMetricas(metricas)
-    const latestMonth = globalMetricas.at(-1)
-    const previousMonth = globalMetricas.at(-2)
+    const globalMetricas = getGlobalMetricas(metricas);
+    const latestMonth = globalMetricas.at(-1);
+    const previousMonth = globalMetricas.at(-2);
 
-    const transactionVolume = toNumber(snapshot.volumenTransacciones)
-    const netRevenue = toNumber(snapshot.ingresosNetos)
-    const completedOrders = snapshot.pedidosCompletados
+    const transactionVolume = toNumber(snapshot.volumenTransacciones);
+    const netRevenue = toNumber(snapshot.ingresosNetos);
+    const completedOrders = snapshot.pedidosCompletados;
 
     const averageTicket =
       latestMonth && toNumber(latestMonth.ticketPromedio) > 0
         ? toNumber(latestMonth.ticketPromedio)
         : completedOrders > 0
           ? transactionVolume / completedOrders
-          : 0
+          : 0;
 
     const previousAverageTicket = previousMonth
       ? toNumber(previousMonth.ticketPromedio)
-      : 0
+      : 0;
 
     return {
       transactionVolume,
       netRevenue,
       completedOrders,
       averageTicket,
-      averageTicketTrend: calculateTrend(
-        averageTicket,
-        previousAverageTicket,
-      ),
-    }
+      averageTicketTrend: calculateTrend(averageTicket, previousAverageTicket),
+    };
   } catch {
-    await delay(160)
+    await delay(160);
     return {
       transactionVolume: 184_350_000,
       netRevenue: 27_652_500,
       completedOrders: 13_984,
       averageTicket: 13_184,
       averageTicketTrend: "+0.0%",
-    }
+    };
   }
 }
 
 // --- Feedback App API --------------------------------------------------------
 async function getFeedbackSummary(): Promise<{
-  globalRating: number
-  totalReviews: number
+  globalRating: number;
+  totalReviews: number;
 }> {
-  await delay(110)
-  return { globalRating: 4.7, totalReviews: 11_240 }
+  await delay(110);
+  return { globalRating: 4.7, totalReviews: 11_240 };
 }
 
 // --- Consolidated KPIs (top row) ---------------------------------------------
@@ -238,7 +242,7 @@ export async function fetchKpis(_period?: Period): Promise<KpiData> {
     getProfessionalsCount(),
     getPaymentsSummary(),
     getFeedbackSummary(),
-  ])
+  ]);
 
   return {
     totalUsers: clients + professionals,
@@ -252,16 +256,16 @@ export async function fetchKpis(_period?: Period): Promise<KpiData> {
     averageTicket: payments.averageTicket,
     averageTicketTrend: payments.averageTicketTrend,
     activeUsers: 3210,
-  }
+  };
 }
 
 // --- Trabajos por categoría --------------------------------------------------
 export async function fetchJobsByCategory(
   period: Period = "6m",
 ): Promise<CategoryDatum[]> {
-const params = periodToParams(period);
-const query = params ? `estado=COMPLETADO&${params}` : "estado=COMPLETADO";
-const res = await fetch(`/api/trabajos?${query}`);
+  const params = periodToParams(period);
+  const query = params ? `estado=COMPLETADO&${params}` : "estado=COMPLETADO";
+  const res = await fetch(`/api/trabajos?${query}`);
   if (!res.ok) throw new Error("Error al cargar trabajos");
   const trabajos: Array<{ categoria: string }> = await res.json();
 
@@ -289,9 +293,9 @@ const res = await fetch(`/api/trabajos?${query}`);
 export async function fetchSuccessRate(
   period: Period = "6m",
 ): Promise<SuccessRateDatum[]> {
-const params = periodToParams(period);
-const query = params ? `?${params}` : "";
-const res = await fetch(`/api/trabajos${query}`);
+  const params = periodToParams(period);
+  const query = params ? `?${params}` : "";
+  const res = await fetch(`/api/trabajos${query}`);
   if (!res.ok) throw new Error("Error al cargar tasa de éxito");
   const trabajos: Array<{ categoria: string; estado: string }> =
     await res.json();
@@ -358,18 +362,20 @@ export async function fetchRevenueTrend(
     transacciones: m.trabajosCompletados + m.trabajosCancelados,
   }));
 }
-export async function fetchRevenueByCategory(): Promise<RevenueByCategoryDatum[]> {
+export async function fetchRevenueByCategory(): Promise<
+  RevenueByCategoryDatum[]
+> {
   try {
     const response = await fetch("/api/trabajos", {
       method: "GET",
       cache: "no-store",
-    })
+    });
 
     if (!response.ok) {
-      throw new Error("No se pudieron obtener los trabajos")
+      throw new Error("No se pudieron obtener los trabajos");
     }
 
-    const trabajos = (await response.json()) as TrabajoResumenApi[]
+    const trabajos = (await response.json()) as TrabajoResumenApi[];
 
     const totals: Record<
       "Plomería" | "Gas" | "Electricidad",
@@ -390,27 +396,27 @@ export async function fetchRevenueByCategory(): Promise<RevenueByCategoryDatum[]
         comision: 0,
         fill: "var(--electrical)",
       },
-    }
+    };
 
     trabajos
       .filter((trabajo) => trabajo.estado === "COMPLETADO")
       .forEach((trabajo) => {
-        const category = mapCategory(trabajo.categoria)
-        const monto = toNumber(trabajo.monto)
-        const comision = toNumber(trabajo.comisionFixNow)
+        const category = mapCategory(trabajo.categoria);
+        const monto = toNumber(trabajo.monto);
+        const comision = toNumber(trabajo.comisionFixNow);
 
-        totals[category].ingresos += monto
-        totals[category].comision += comision
-      })
+        totals[category].ingresos += monto;
+        totals[category].comision += comision;
+      });
 
     return Object.entries(totals).map(([category, values]) => ({
       category: category as "Plomería" | "Gas" | "Electricidad",
       ingresos: values.ingresos,
       comision: values.comision,
       fill: values.fill,
-    }))
+    }));
   } catch {
-    await delay(140)
+    await delay(140);
 
     return [
       {
@@ -431,12 +437,23 @@ export async function fetchRevenueByCategory(): Promise<RevenueByCategoryDatum[]
         comision: 7_522_500,
         fill: "var(--electrical)",
       },
-    ]
+    ];
   }
 }
 // --- Feedback / Driver App: top profesionales --------------------------------
-export async function fetchTopProfessionals(): Promise<TopProfessional[]> {
-  const res = await fetch("/api/profesionales?limit=5");
+export interface TopProfessionalsFilters {
+  categoria?: string;
+  ciudad?: string;
+}
+
+export async function fetchTopProfessionals(
+  filters: TopProfessionalsFilters = {},
+): Promise<TopProfessional[]> {
+  const params = new URLSearchParams({ limit: "10" });
+  if (filters.categoria) params.set("categoria", filters.categoria);
+  if (filters.ciudad) params.set("ciudad", filters.ciudad);
+
+  const res = await fetch(`/api/profesionales?${params}`);
   if (!res.ok) throw new Error("Error al cargar profesionales");
   const data: Array<{
     id: string;
@@ -463,6 +480,12 @@ export async function fetchTopProfessionals(): Promise<TopProfessional[]> {
   }));
 }
 
+export async function fetchCiudades(): Promise<string[]> {
+  const res = await fetch("/api/profesionales/ciudades");
+  if (!res.ok) throw new Error("Error al cargar ciudades");
+  return res.json();
+}
+
 // --- Métricas mensuales (para comparativa) -----------------------------------
 export async function fetchMetricasMensuales(
   period: Period,
@@ -484,6 +507,23 @@ export async function fetchMetricasMensuales(
 export async function fetchCancelaciones(): Promise<CancelacionDatum[]> {
   const res = await fetch("/api/trabajos/cancelaciones");
   if (!res.ok) throw new Error("Error al cargar cancelaciones");
+  return res.json();
+}
+
+// --- Alertas de calidad ------------------------------------------------------
+export interface AlertaProfesional {
+  id: string;
+  nombre: string;
+  categoria: string;
+  ciudad: string;
+  calificacionPromedio: number;
+  totalCancelaciones: number;
+  totalTrabajos: number;
+}
+
+export async function fetchAlertas(): Promise<AlertaProfesional[]> {
+  const res = await fetch("/api/profesionales/alertas");
+  if (!res.ok) throw new Error("Error al cargar alertas de calidad");
   return res.json();
 }
 
@@ -521,7 +561,7 @@ export function formatNumber(value: number): string {
 // --- Ticket promedio por servicio ------------------------------------------------
 export async function fetchAverageTicket(
   period: Period = "6m",
-): Promise<AverageTicketDatum[]> {
+): Promise<AverageTicketByCategoryDatum[]> {
   const anioActual = new Date().getFullYear();
   const mesActual = new Date().getMonth() + 1;
 
@@ -590,4 +630,62 @@ export async function fetchAverageTicket(
       fill: "var(--gas)",
     },
   ];
+}
+
+// --- Comparativa Mensual (Análisis) ---------------------------------
+
+export interface ComparativaMensualDatum {
+  month: string;
+  ingresos: number;
+  completados: number;
+  cancelados: number;
+  nuevos: number;
+}
+
+export async function fetchComparativaMensual(
+  period: Period = "6m",
+): Promise<ComparativaMensualDatum[]> {
+  const anioActual = new Date().getFullYear();
+  const mesActual = new Date().getMonth() + 1;
+
+  // Traemos el año actual y el anterior para soportar cruces de año
+  const [resActual, resAnterior] = await Promise.all([
+    fetch(`/api/metricas?anio=${anioActual}`),
+    fetch(`/api/metricas?anio=${anioActual - 1}`),
+  ]);
+
+  const dataActual: MetricaMensualDatum[] = resActual.ok
+    ? await resActual.json()
+    : [];
+  const dataAnterior: MetricaMensualDatum[] = resAnterior.ok
+    ? await resAnterior.json()
+    : [];
+
+  const globalesActual = dataActual.filter((m) => !m.categoria);
+  const globalesAnterior = dataAnterior.filter((m) => !m.categoria);
+
+  const cantMeses =
+    period === "30d" ? 1 : period === "90d" ? 3 : period === "6m" ? 6 : 12;
+
+  const resultado: MetricaMensualDatum[] = [];
+  for (let i = cantMeses - 1; i >= 0; i--) {
+    let mes = mesActual - i;
+    let anio = anioActual;
+    if (mes <= 0) {
+      mes += 12;
+      anio -= 1;
+    }
+    const fuente = anio === anioActual ? globalesActual : globalesAnterior;
+    const datum = fuente.find((m) => m.mes === mes && m.anio === anio);
+    if (datum) resultado.push(datum);
+  }
+
+  // Mapeamos todos los datos que necesitamos para las múltiples series
+  return resultado.map((m) => ({
+    month: mesesNombres[m.mes - 1],
+    ingresos: Number(m.ingresosTotal),
+    completados: m.trabajosCompletados,
+    cancelados: m.trabajosCancelados,
+    nuevos: m.clientesNuevos,
+  }));
 }

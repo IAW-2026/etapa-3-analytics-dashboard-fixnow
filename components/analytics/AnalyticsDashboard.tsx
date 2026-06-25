@@ -10,10 +10,13 @@ import {
 import { RevenueTrendChart } from "@/components/analytics/RevenueTrendChart";
 import { TopProfessionals } from "@/components/analytics/TopProfessionals";
 import { RatingHistogram } from "@/components/analytics/RatingHistogram";
+import { AlertasCalidad } from "@/components/analytics/AlertasCalidad";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
 import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
-import { PaymentStatusChart } from "./PaymentStatusChart";
+import { AnalisisComparativaChart } from "@/components/analytics/AnalisisComparativaChart";
+import { AnalisisCancelaciones } from "@/components/analytics/AnalisisCancelaciones";
+import { AnalisisInsightsBanner } from "@/components/analytics/AnalisisInsightsBanner";
 
 export type Period = "30d" | "90d" | "6m" | "1y";
 
@@ -100,7 +103,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
             <AnalyticsCharts />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <RevenueTrendChart />
-            <RevenueByCategoryChart />
+              <RevenueByCategoryChart />
             </div>
             <TopProfessionals />
           </>
@@ -108,9 +111,10 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
 
         {currentView === "analisis" && (
           <>
-            <KpiCards period={period} />
+            <AnalisisInsightsBanner period={period} />
             <AnalisisCharts period={period} />
-            <RevenueTrendChart period={period} />
+            <AnalisisComparativaChart period={period} />
+            <AnalisisCancelaciones period={period} />
           </>
         )}
 
@@ -118,7 +122,10 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <>
             <KpiCards />
             <TopProfessionals />
-            <RatingHistogram />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <RatingHistogram />
+              <AlertasCalidad />
+            </div>
           </>
         )}
       </div>
