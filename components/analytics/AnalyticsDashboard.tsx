@@ -13,6 +13,7 @@ import { RatingHistogram } from "@/components/analytics/RatingHistogram";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
 import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
+import { PaymentStatusChart } from "./PaymentStatusChart";
 
 export type Period = "30d" | "90d" | "6m" | "1y";
 
