@@ -42,7 +42,7 @@ La complejidad de esta aplicación no reside en operaciones CRUD, sino en la con
 
 Es la pantalla de inicio del dashboard. Presenta una foto consolidada del estado del ecosistema:
 
-1. **KPI Cards** — Revisá los cuatro indicadores clave: usuarios totales (clientes + profesionales), volumen de transacciones, ingresos netos de FixNow y satisfacción global. Cada card indica su fuente de datos.
+1. **KPI Cards** — Revisa los indicadores clave del negocio: usuarios totales, satisfacción global y un bloque financiero integrado de Payments App. El resumen financiero muestra volumen total procesado, ingresos netos estimados para FixNow y monto promedio por pedido. Además, permite descargar un reporte financiero en Excel con datos consolidados de pagos, ingresos, estados de pago, evolución mensual y transacciones.
 2. **Trabajos por Categoría** — Gráfico de torta con la distribución de servicios entre Plomería, Electricidad y Gas. Hover sobre cada segmento para ver el número exacto.
 3. **Tasa de Éxito** — Gráfico de barras comparando trabajos completados vs. cancelados por categoría.
 4. **Tendencia de Ingresos** — Área chart con la evolución mensual de ingresos de los últimos meses.
@@ -57,14 +57,18 @@ Vista orientada a la Inteligencia de Negocios (BI) y el análisis operacional de
 3. **Interactividad Gerencial (Drill-down)** — Los gráficos de Trabajos, Tasa de Éxito y Ticket Promedio responden a eventos de clic. Al seleccionar un segmento o barra, se despliega un panel analítico que cruza la información para revelar métricas críticas: Dinero en la mesa (ingresos perdidos por cancelaciones), Ratio de pérdida, Facturación Bruta (GMV) y Comisión Neta..
 4. **Comparativa Operativa y Financiera (Doble Eje Y)** — Gráfico ComposedChart diseñado para evitar distorsiones de escala. Cruza los ingresos en millones (área de fondo, eje izquierdo) con el volumen de trabajos y clientes en unidades (líneas, eje derecho), permitiendo correlacionar visualmente el esfuerzo operativo con el retorno financiero.
 5. **Análisis de Cancelaciones** — Desglose optimizado mediante un gráfico de barras horizontales con el Top 5 de motivos exactos de cancelación, acompañado de un gráfico de tasas porcentuales de caída por cada oficio.
+6. **Insight Financiero de Payments** — Panel específico de Payments App que analiza la efectividad de pagos, el control de riesgo y la rentabilidad de la plataforma. Cada insight es interactivo y abre un modal con el origen del dato y una recomendación de negocio.
+
+7. **Estado de Pagos** — Gráfico de barras que clasifica las operaciones según su estado: pagadas, pendientes, en proceso o fallidas. Permite monitorear rápidamente la salud financiera del sistema y detectar posibles riesgos operativos vinculados al cobro de servicios.
 
 #### Vista: Monitoreo de Profesionales
 
 Vista focalizada en el desempeño individual de los profesionales:
 
 1. **Top Profesionales con filtros** — Filtrá el ranking por categoría de servicio y ciudad para encontrar los mejores profesionales en cada segmento.
-2. **Distribución de ratings** — Histograma de estrellas mostrando cuántas reseñas acumuló la plataforma en cada nivel (1 a 5 estrellas).
-3. **Alertas de calidad** — Tabla de profesionales con indicadores de riesgo: rating por debajo del umbral mínimo o alta tasa de cancelaciones. Permite tomar acción proactiva antes de que afecten la experiencia del cliente.
+2. **Ranking financiero estimado de profesionales** — Ranking generado desde Payments App que identifica qué profesionales aportan mayor facturación estimada a la plataforma. El cálculo cruza los trabajos registrados con los datos de profesionales disponibles, mostrando total generado, comisión estimada para FixNow, cantidad de trabajos y monto promedio por servicio.
+3. **Distribución de ratings** — Histograma de estrellas mostrando cuántas reseñas acumuló la plataforma en cada nivel (1 a 5 estrellas).
+4. **Alertas de calidad** — Tabla de profesionales con indicadores de riesgo: rating por debajo del umbral mínimo o alta tasa de cancelaciones. Permite tomar acción proactiva antes de que afecten la experiencia del cliente.
 
 ---
 
@@ -83,13 +87,16 @@ El dashboard mantiene su propia base de datos con tablas optimizadas para lectur
 
 **Fuentes de datos por sección:**
 
-| Sección                  | Fuente                    |
-| ------------------------ | ------------------------- |
-| Usuarios totales         | Rider App + Driver App    |
-| Volumen e ingresos       | Payments App              |
-| Satisfacción y ratings   | Feedback App              |
-| Trabajos y cancelaciones | Rider App                 |
-| Profesionales            | Driver App + Feedback App |
+| Sección                         | Fuente                         |
+| ------------------------------- | ------------------------------ |
+| Usuarios totales                | Rider App + Driver App         |
+| Volumen e ingresos              | Payments App                   |
+| Resumen financiero              | Payments App                   |
+| Estado de pagos                 | Payments App                   |
+| Ranking financiero profesional  | Payments App + Driver App      |
+| Satisfacción y ratings          | Feedback App                   |
+| Trabajos y cancelaciones        | Rider App                      |
+| Profesionales                   | Driver App + Feedback App      |
 
 **Decisiones de diseño y rendimiento:**
 
@@ -102,3 +109,8 @@ El dashboard mantiene su propia base de datos con tablas optimizadas para lectur
 - **Agrupación de Fechas Eficiente:** El selector de período filtra los datos de TrabajoResumen por fechaCreacion, permitiendo análisis histórico real. A su vez, las métricas agregadas (MetricaMensual) se pre-calculan para optimizar la carga de los gráficos de tendencia.
 
 - **Población de Datos (Seed):** El seed de desarrollo incluye datos históricos desde 2024 con patrones intencionales (estacionalidad y fluctuaciones semanales por categoría) forzando al algoritmo del Dashboard a detectar y emitir recomendaciones de negocio reales durante la evaluación.
+- **Exportación Financiera en Excel:** La sección de Payments App incorpora una descarga de reporte financiero en formato Excel, organizado en hojas separadas para resumen ejecutivo, indicadores, ingresos por categoría, estados de pago, evolución mensual, transacciones y datos para gráficos. Esto permite que el administrador pueda analizar la información fuera del dashboard.
+
+- **Ranking Financiero sin modificar Backend:** El ranking financiero de profesionales se calcula desde el frontend utilizando endpoints ya existentes. Se cruzan datos de trabajos y profesionales para estimar la facturación generada por cada profesional, la comisión correspondiente para FixNow y el promedio por servicio, evitando cambios en las rutas del backend.
+
+- **Separación de lógica financiera:** Los componentes relacionados con Payments App se modularizaron en archivos independientes, como `FinancialKpiCard.tsx`, `PaymentsFinancialInsight.tsx`, `PaymentStatusChart.tsx`, `ProfessionalRevenueRanking.tsx` y `ExportFinancialExcelButton.tsx`. Esto mantiene el dashboard ordenado y reduce el riesgo de conflictos con componentes de otras apps.

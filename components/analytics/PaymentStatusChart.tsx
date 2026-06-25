@@ -32,8 +32,8 @@ type PaymentStatusDatum = {
 
 const STATUS_COLORS: Record<PaymentStatusKey, string> = {
   paid: "#4c9868",
-  pending: "#eab308",
-  processing: "var(--primary)",
+  pending: "#DDBA88",
+  processing: "#003658",
   failed: "#D28A71",
 }
 
