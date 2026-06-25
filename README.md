@@ -122,14 +122,3 @@ El dashboard mantiene su propia base de datos con tablas optimizadas para lectur
 - **Clasificación de Riesgo en Servidor:** La lógica de alertas de calidad se resuelve en la API route (`/api/profesionales/alertas`) mediante una query con `OR` en Prisma, enviando al cliente únicamente los registros que superan los umbrales. La clasificación secundaria Alto/Medio se calcula en el componente con los datos ya filtrados, sin llamadas adicionales.
 
 - **Histograma Calculado desde Datos Granulares:** La distribución de ratings se deriva de `TrabajoResumen.calificacion` (ratings individuales por trabajo) en lugar de usar el promedio de `ProfesionalResumen`, lo que refleja el volumen real de reseñas por nivel de estrella.
-
-- **Extensión de Schema con Compatibilidad hacia Atrás:** Los campos `reseñasAceptadas` y `reseñasRechazadas` se agregaron a `SnapshotKPI` con `@default(0)`, de modo que los registros existentes no se rompen y el sync usa `?? 0` al leer de la Feedback App, permitiendo un rollout gradual sin bloquear la funcionalidad si la app externa aún no expone esos campos.
-
-**Contrato de integración — Feedback App (`GET /analytics`):**
-
-| Campo | Tipo | Descripción |
-| --- | --- | --- |
-| `calificacionPromedio` | `Float` | Promedio global de todas las reseñas |
-| `totalReseñas` | `Int` | Total de reseñas recibidas |
-| `reseñasAceptadas` | `Int` | Reseñas que pasaron moderación / fueron publicadas |
-| `reseñasRechazadas` | `Int` | Reseñas rechazadas por moderación |
