@@ -44,8 +44,9 @@ export interface RevenueTrendDatum {
   transacciones: number;
 }
 export interface AverageTicketDatum {
-  month: string;
-  ticketPromedio: number;
+  category: "Plomería" | "Gas" | "Electricidad";
+  ticket: number;
+  fill: string;
 }
 export interface AverageTicketByCategoryDatum {
   category: "Plomería" | "Gas" | "Electricidad";

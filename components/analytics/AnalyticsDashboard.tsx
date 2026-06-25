@@ -17,7 +17,7 @@ import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
 import { AnalisisComparativaChart } from "@/components/analytics/AnalisisComparativaChart";
 import { AnalisisCancelaciones } from "@/components/analytics/AnalisisCancelaciones";
 import { AnalisisInsightsBanner } from "@/components/analytics/AnalisisInsightsBanner";
-
+import { PaymentStatusChart } from "@/components/analytics/PaymentStatusChart";
 export type Period = "30d" | "90d" | "6m" | "1y";
 
 interface AnalyticsDashboardProps {
@@ -115,6 +115,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
             <AnalisisCharts period={period} />
             <AnalisisComparativaChart period={period} />
             <AnalisisCancelaciones period={period} />
+             <PaymentStatusChart />
           </>
         )}
 

@@ -290,10 +290,10 @@ function AverageTicketChart({
     <Card className="border-border">
       <CardHeader>
         <CardTitle className="font-(family-name:--font-display) text-lg">
-          Ticket Promedio
+          Monto Promedio por Servicio
         </CardTitle>
         <CardDescription>
-          Valor medio por servicio · Payments App
+          Comparación del valor promedio por categoría · Payments App
         </CardDescription>
       </CardHeader>
       <CardContent>
