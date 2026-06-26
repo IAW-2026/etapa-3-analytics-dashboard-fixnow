@@ -23,7 +23,7 @@ export async function syncSnapshot(fecha: string) {
   const ingresosNetos = paymentsData.ingresosNetos;
   const pedidosCompletados = Array.isArray(riderData.jobs) 
     ? riderData.jobs.filter((j: any) => {
-      const status = (j.estado);
+      const status = (j.status);
       return status === 'COMPLETED';
     }).length
     : 0;

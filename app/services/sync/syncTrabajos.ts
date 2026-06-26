@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getRiderData } from '../clients/riderClient'
 import { getFeedbackData } from '../clients/feedbackClient'
 import { getPaymentsData } from '../clients/paymentsClient'
+import { EstadoTrabajo } from '@prisma/client'
 
 type Pago = {
     jobId: string
@@ -22,6 +23,18 @@ function normalizeEstadoTrabajo(status: unknown){
     if(value === 'CANCELLED') return 'CANCELADO'
     
     return 'EN_PROGRESO'
+}
+
+type CategoriaEnum = 'PLOMERIA' | 'ELECTRICIDAD' | 'GAS'
+
+function normalizeCategoria(value: unknown): CategoriaEnum{
+    const s = String(value || '').toUpperCase()
+
+    if(s.includes('PLOM') || s.includes('PLUMB') || s.includes('PLOMER')) return 'PLOMERIA'
+    if(s.includes('ELECT') || s.includes('ELECTRIC')) return 'ELECTRICIDAD'
+    if(s.includes('GAS')) return 'GAS'
+
+    return 'PLOMERIA'
 }
 
 export async function syncTrabajos(){
@@ -57,11 +70,11 @@ export async function syncTrabajos(){
         const estado = normalizeEstadoTrabajo(job.status);
         const isCancelado = estado === 'CANCELADO';
         const cancelacionFecha = job.cancelledAt ? new Date(job.cancelledAt) : new Date()
-        const motivo = job.cancelationReason ? job.cancelationReason : '';
+        const motivo = job.cancellationReason ? job.cancellationReason : '';
 
         const jobData = {
             trabajoExternoId: job.id,
-            categoria: job.serviceType,
+            categoria: normalizeCategoria(job.serviceType),
             estado,
             monto: pago?.amount != null ? Number(pago.amount) : null,
             comisionFixNow: pago?.commissionAmount != null ? Number(pago.commissionAmount) : null,
@@ -78,12 +91,13 @@ export async function syncTrabajos(){
                 where: {trabajoExternoId: jobId},
                 create:{
                     ...jobData,
+                    estado: jobData.estado as EstadoTrabajo,
                     motivoCancelacion:
                         isCancelado
                         ?{
                             create: {
                                 motivo,
-                                categoria: job.serviceType,
+                                categoria: normalizeCategoria(job.serviceType),
                                 fecha: cancelacionFecha,
                             },
 
@@ -92,18 +106,19 @@ export async function syncTrabajos(){
                 },
                 update: {
                     ...jobData,
+                    estado: jobData.estado as EstadoTrabajo,
                     motivoCancelacion:
                         isCancelado
                         ?{
                             upsert: {
                                 create: {
                                     motivo,
-                                    categoria: job.serviceType,
+                                    categoria: normalizeCategoria(job.serviceType),
                                     fecha: cancelacionFecha,
                                 },
                                 update:{
                                     motivo,
-                                    categoria: job.serviceType,
+                                    categoria: normalizeCategoria(job.serviceType),
                                     fecha: cancelacionFecha,
                                 },
                             },
