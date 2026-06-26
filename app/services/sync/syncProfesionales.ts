@@ -18,7 +18,7 @@ export async function syncProfesionales(fecha?: string){
     const trabajos = Array.isArray(riderData.jobs) ? riderData.jobs : [];
 
     const resumenTrabajos = trabajos.reduce((acumulador: any, trabajo: any) => {
-        const idProf = trabajo.profesionalId;
+        const idProf = trabajo.professionalId;
         if (!idProf) return acumulador;
 
         acumulador[idProf] = acumulador[idProf] || { completados: 0, cancelados: 0 }

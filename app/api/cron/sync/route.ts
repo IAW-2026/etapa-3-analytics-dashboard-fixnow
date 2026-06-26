@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { syncSnapshot } from '@/app/services/sync/syncSnapshot';
 import { syncTrabajos } from '@/app/services/sync/syncTrabajos';
 import { syncProfesionales } from '@/app/services/sync/syncProfesionales';
-// import { calcularMetricasMensuales } from '@/app/services/sync/metricasMensuales';
+import { calcularMetricasMensuales } from '@/app/services/sync/calcularMetricasMensuales';
 
 export async function GET(request: Request) {
   // 1. Proteger el endpoint
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     await syncProfesionales();
 
     // Paso 4: Métricas locales
-    // await calcularMetricasMensuales();
+    await calcularMetricasMensuales();
 
     return NextResponse.json({ 
       success: true, 
