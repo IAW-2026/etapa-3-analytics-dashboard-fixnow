@@ -114,11 +114,11 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
         {currentView === "analisis" && (
           <>
             <AnalisisInsightsBanner period={period} />
-            <PaymentsFinancialInsight period={period} />
             <AnalisisCharts period={period} />
             <AnalisisComparativaChart period={period} />
+            <PaymentsFinancialInsight period={period} />
+            <PaymentStatusChart />
             <AnalisisCancelaciones period={period} />
-             <PaymentStatusChart />
           </>
         )}
 
