@@ -1,22 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import {
-  LayoutDashboard,
-  PieChart,
-  Trophy,
-  Settings,
-  LogOut,
-  User,
-  Circle,
-} from "lucide-react";
+import { LayoutDashboard, PieChart, Trophy, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -32,13 +23,6 @@ const navItems = [
   { id: "resumen" as const, label: "Resumen", icon: LayoutDashboard },
   { id: "analisis" as const, label: "Análisis", icon: PieChart },
   { id: "monitoreo" as const, label: "Monitoreo", icon: Trophy },
-];
-
-const sources = [
-  { label: "Rider App", color: "var(--plumbing)" },
-  { label: "Driver App", color: "var(--electrical)" },
-  { label: "Payments App", color: "var(--brand-accent)" },
-  { label: "Feedback App", color: "#7aa7d6" },
 ];
 
 export function AnalyticsSidebar({
@@ -80,7 +64,7 @@ export function AnalyticsSidebar({
                 "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-plumbing text-white"
-                  : "text-white/70 hover:bg-sidebar-accent hover:text-white",
+                  : "text-white/70 hover:bg-sidebar-accent hover:text-white cursor-pointer",
               )}
             >
               <Icon className="size-5" />
@@ -89,22 +73,16 @@ export function AnalyticsSidebar({
           );
         })}
 
-        {/* Data sources legend */}
+        {/* Data sources legend (Modificado a texto descriptivo) */}
         <div className="mt-8 px-3">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-white/40">
-            Fuentes de datos
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+            Ecosistema Integrado
           </p>
-          <div className="space-y-2.5">
-            {sources.map((source) => (
-              <div key={source.label} className="flex items-center gap-2.5">
-                <Circle
-                  className="size-2.5 fill-current"
-                  style={{ color: source.color }}
-                />
-                <span className="text-xs text-white/60">{source.label}</span>
-              </div>
-            ))}
-          </div>
+          <p className="text-xs text-white/50 leading-relaxed text-balance">
+            Analítica consolidada en tiempo real obtenida desde{" "}
+            <strong>Rider</strong>, <strong>Driver</strong>,{" "}
+            <strong>Payments</strong> y <strong>Feedback</strong> App.
+          </p>
         </div>
       </nav>
 
@@ -112,7 +90,7 @@ export function AnalyticsSidebar({
       <div className="border-t border-sidebar-border p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent">
+            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent cursor-pointer">
               <Avatar className="size-9">
                 <AvatarFallback className="bg-electrical text-brand-dark">
                   AD
@@ -128,17 +106,14 @@ export function AnalyticsSidebar({
               </div>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem>
-              <User className="mr-2 size-4" />
-              Mi Perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 size-4" />
-              Configuración
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={onLogout}>
+          <DropdownMenuContent
+            align="start"
+            className="w-56 border-border bg-card"
+          >
+            <DropdownMenuItem
+              className="text-destructive cursor-pointer"
+              onClick={onLogout}
+            >
               <LogOut className="mr-2 size-4" />
               Cerrar Sesión
             </DropdownMenuItem>

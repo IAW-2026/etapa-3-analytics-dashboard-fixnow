@@ -23,6 +23,7 @@ import {
   formatCompactCLP,
   type RevenueTrendDatum,
 } from "@/lib/analytics-data";
+import type { Period } from "./AnalyticsDashboard";
 
 function RevenueTooltip({
   active,
@@ -44,10 +45,10 @@ function RevenueTooltip({
   );
 }
 
-export function RevenueTrendChart() {
+export function RevenueTrendChart({ period = "6m" }: { period?: Period }) {
   const { data, isLoading } = useSWR<RevenueTrendDatum[]>(
-    "revenue-trend",
-    fetchRevenueTrend,
+    `revenue-trend-${period}`,
+    () => fetchRevenueTrend(period),
   );
 
   return (
@@ -56,7 +57,17 @@ export function RevenueTrendChart() {
         <CardTitle className="font-(family-name:--font-display) text-lg">
           Tendencia de Ingresos
         </CardTitle>
-        <CardDescription>Últimos 6 meses · Payments App</CardDescription>
+        <CardDescription>
+          Últimos{" "}
+          {period === "30d"
+            ? 1
+            : period === "90d"
+              ? 3
+              : period === "6m"
+                ? 6
+                : 12}{" "}
+          meses · Payments App
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading || !data ? (
