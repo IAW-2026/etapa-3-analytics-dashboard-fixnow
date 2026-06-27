@@ -213,11 +213,23 @@ export function PaymentsFinancialInsight({
     () => fetchKpis(period),
   );
 
+  const urlParams = useMemo(() => {
+    if (!period) return "";
+    const hasta = new Date();
+    const desde = new Date();
+    if (period === "30d") desde.setDate(desde.getDate() - 30);
+    else if (period === "90d") desde.setDate(desde.getDate() - 90);
+    else if (period === "6m") desde.setMonth(desde.getMonth() - 6);
+    else if (period === "1y") desde.setFullYear(desde.getFullYear() - 1);
+
+    return `?desde=${desde.toISOString().split("T")[0]}&hasta=${hasta.toISOString().split("T")[0]}`;
+  }, [period]);
+
   const {
     data: trabajosData,
     isLoading: loadingTrabajos,
     error,
-  } = useSWR("/api/trabajos", fetcher);
+  } = useSWR(`/api/trabajos${urlParams}`, fetcher);
 
   const stats = useMemo(() => {
     const trabajos = extractArray(trabajosData);

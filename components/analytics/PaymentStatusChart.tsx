@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
+import useSWR from "swr";
 import {
   Bar,
   BarChart,
@@ -10,69 +10,70 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
+} from "recharts";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo } from "react";
 
-type UnknownRecord = Record<string, unknown>
+type UnknownRecord = Record<string, unknown>;
 
-type PaymentStatusKey = "paid" | "pending" | "processing" | "failed"
+type PaymentStatusKey = "paid" | "pending" | "processing" | "failed";
 
 type PaymentStatusDatum = {
-  key: PaymentStatusKey
-  status: string
-  value: number
-}
+  key: PaymentStatusKey;
+  status: string;
+  value: number;
+};
 
 const STATUS_COLORS: Record<PaymentStatusKey, string> = {
   paid: "#4c9868",
   pending: "#DDBA88",
   processing: "#003658",
   failed: "#D28A71",
-}
+};
 
 const fetcher = async (url: string) => {
-  const response = await fetch(url, { cache: "no-store" })
+  const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error("No se pudieron cargar los datos")
+    throw new Error("No se pudieron cargar los datos");
   }
 
-  return response.json()
-}
+  return response.json();
+};
 
 function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function extractArray(data: unknown): UnknownRecord[] {
   if (Array.isArray(data)) {
-    return data.filter(isRecord)
+    return data.filter(isRecord);
   }
 
-  if (!isRecord(data)) return []
+  if (!isRecord(data)) return [];
 
-  const possibleKeys = ["trabajos", "jobs", "data", "items", "payments"]
+  const possibleKeys = ["trabajos", "jobs", "data", "items", "payments"];
 
   for (const key of possibleKeys) {
-    const value = data[key]
+    const value = data[key];
 
     if (Array.isArray(value)) {
-      return value.filter(isRecord)
+      return value.filter(isRecord);
     }
   }
 
-  return []
+  return [];
 }
 
 function getString(value: unknown): string {
-  return typeof value === "string" ? value.toLowerCase().trim() : ""
+  return typeof value === "string" ? value.toLowerCase().trim() : "";
 }
 
 function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
@@ -80,14 +81,14 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
     getString(item.paymentStatus) ||
     getString(item.estadoPago) ||
     getString(item.statusPago) ||
-    getString(item.payment_status)
+    getString(item.payment_status);
 
   if (
     directStatus === "paid" ||
     directStatus === "pagado" ||
     directStatus === "acreditado"
   ) {
-    return "paid"
+    return "paid";
   }
 
   if (
@@ -96,7 +97,7 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
     directStatus === "en_proceso" ||
     directStatus === "en proceso"
   ) {
-    return "processing"
+    return "processing";
   }
 
   if (
@@ -104,30 +105,27 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
     directStatus === "fallido" ||
     directStatus === "rechazado"
   ) {
-    return "failed"
+    return "failed";
   }
 
-  if (
-    directStatus === "pending" ||
-    directStatus === "pendiente"
-  ) {
-    return "pending"
+  if (directStatus === "pending" || directStatus === "pendiente") {
+    return "pending";
   }
 
-  const payment = item.payment
+  const payment = item.payment;
 
   if (isRecord(payment)) {
     const nestedStatus =
       getString(payment.status) ||
       getString(payment.estado) ||
-      getString(payment.paymentStatus)
+      getString(payment.paymentStatus);
 
     if (
       nestedStatus === "paid" ||
       nestedStatus === "pagado" ||
       nestedStatus === "acreditado"
     ) {
-      return "paid"
+      return "paid";
     }
 
     if (
@@ -136,7 +134,7 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
       nestedStatus === "en_proceso" ||
       nestedStatus === "en proceso"
     ) {
-      return "processing"
+      return "processing";
     }
 
     if (
@@ -144,18 +142,15 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
       nestedStatus === "fallido" ||
       nestedStatus === "rechazado"
     ) {
-      return "failed"
+      return "failed";
     }
 
-    if (
-      nestedStatus === "pending" ||
-      nestedStatus === "pendiente"
-    ) {
-      return "pending"
+    if (nestedStatus === "pending" || nestedStatus === "pendiente") {
+      return "pending";
     }
   }
 
-  const jobStatus = getString(item.estado) || getString(item.status)
+  const jobStatus = getString(item.estado) || getString(item.status);
 
   if (
     jobStatus === "completado" ||
@@ -163,7 +158,7 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
     jobStatus === "paid" ||
     jobStatus === "pagado"
   ) {
-    return "paid"
+    return "paid";
   }
 
   if (
@@ -172,7 +167,7 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
     jobStatus === "en_proceso" ||
     jobStatus === "en proceso"
   ) {
-    return "processing"
+    return "processing";
   }
 
   if (
@@ -181,10 +176,10 @@ function getPaymentStatus(item: UnknownRecord): PaymentStatusKey {
     jobStatus === "cancelado" ||
     jobStatus === "cancelled"
   ) {
-    return "failed"
+    return "failed";
   }
 
-  return "pending"
+  return "pending";
 }
 
 function buildPaymentStatusData(items: UnknownRecord[]): PaymentStatusDatum[] {
@@ -193,11 +188,11 @@ function buildPaymentStatusData(items: UnknownRecord[]): PaymentStatusDatum[] {
     pending: 0,
     processing: 0,
     failed: 0,
-  }
+  };
 
   for (const item of items) {
-    const status = getPaymentStatus(item)
-    summary[status]++
+    const status = getPaymentStatus(item);
+    summary[status]++;
   }
 
   return [
@@ -221,15 +216,35 @@ function buildPaymentStatusData(items: UnknownRecord[]): PaymentStatusDatum[] {
       status: "Fallidos",
       value: summary.failed,
     },
-  ]
+  ];
 }
 
-export function PaymentStatusChart() {
-  const { data, isLoading, error } = useSWR("/api/trabajos", fetcher)
+interface PaymentStatusChartProps {
+  period?: "30d" | "90d" | "6m" | "1y";
+}
 
-  const items = extractArray(data)
-  const chartData = buildPaymentStatusData(items)
-  const total = chartData.reduce((acc, item) => acc + item.value, 0)
+export function PaymentStatusChart({ period = "6m" }: PaymentStatusChartProps) {
+  // Calculamos las fechas exactas según el período seleccionado
+  const urlParams = useMemo(() => {
+    if (!period) return "";
+    const hasta = new Date();
+    const desde = new Date();
+    if (period === "30d") desde.setDate(desde.getDate() - 30);
+    else if (period === "90d") desde.setDate(desde.getDate() - 90);
+    else if (period === "6m") desde.setMonth(desde.getMonth() - 6);
+    else if (period === "1y") desde.setFullYear(desde.getFullYear() - 1);
+
+    return `?desde=${desde.toISOString().split("T")[0]}&hasta=${hasta.toISOString().split("T")[0]}`;
+  }, [period]);
+
+  // Le inyectamos los parámetros al fetcher
+  const { data, isLoading, error } = useSWR(
+    `/api/trabajos${urlParams}`,
+    fetcher,
+  );
+  const items = extractArray(data);
+  const chartData = buildPaymentStatusData(items);
+  const total = chartData.reduce((acc, item) => acc + item.value, 0);
 
   return (
     <Card className="border-border shadow-sm flex flex-col h-full">
@@ -284,10 +299,7 @@ export function PaymentStatusChart() {
 
                 <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={80}>
                   {chartData.map((item) => (
-                    <Cell
-                      key={item.key}
-                      fill={STATUS_COLORS[item.key]}
-                    />
+                    <Cell key={item.key} fill={STATUS_COLORS[item.key]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -296,5 +308,5 @@ export function PaymentStatusChart() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

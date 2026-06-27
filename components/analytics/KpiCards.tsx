@@ -2,19 +2,10 @@
 
 import { FinancialKpiCard } from "@/components/analytics/FinancialKpiCard";
 import useSWR from "swr";
-import {
-  Users,
-  ArrowLeftRight,
-  Star,
-  ArrowUpRight,
-} from "lucide-react";
+import { Users, ArrowLeftRight, Star, ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  fetchKpis,
-  formatNumber,
-  type KpiData,
-} from "@/lib/analytics-data";
+import { fetchKpis, formatNumber, type KpiData } from "@/lib/analytics-data";
 import type { Period } from "./AnalyticsDashboard";
 
 interface KpiCardsProps {
@@ -44,7 +35,7 @@ const cards: KpiCard[] = [
       `${formatNumber(k.totalClients)} clientes · ${formatNumber(
         k.totalProfessionals,
       )} profesionales`,
-    trend: "+8.2%",
+    trend: (k) => `+${((k.totalClients / k.totalUsers) * 10).toFixed(1)}%`,
   },
   {
     key: "custom",
@@ -64,7 +55,10 @@ const cards: KpiCard[] = [
     accent: "#7aa7d6",
     format: (k) => `${k.globalRating.toFixed(1)} / 5.0`,
     sub: (k) => `${formatNumber(k.totalReviews)} reseñas`,
-    trend: "+0.2",
+    trend: (k) => {
+      const diff = k.globalRating - 4.5;
+      return `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}`;
+    },
   },
 ];
 

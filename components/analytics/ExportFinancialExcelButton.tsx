@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import * as XLSX from "xlsx-js-style"
-import { Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import * as XLSX from "xlsx-js-style";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-type Trabajo = Record<string, any>
-type Metrica = Record<string, any>
+type Trabajo = Record<string, any>;
+type Metrica = Record<string, any>;
 
 const COLORS = {
   dark: "1F2937",
@@ -16,17 +16,17 @@ const COLORS = {
   red: "DC2626",
   lightGray: "F3F4F6",
   white: "FFFFFF",
-}
+};
 
 function toNumber(value: unknown): number {
-  const parsed = Number(value || 0)
-  return Number.isFinite(parsed) ? parsed : 0
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function getArray(data: any, key: string) {
-  if (Array.isArray(data)) return data
-  if (Array.isArray(data?.[key])) return data[key]
-  return []
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.[key])) return data[key];
+  return [];
 }
 
 function getCategoria(trabajo: Trabajo): string {
@@ -36,15 +36,15 @@ function getCategoria(trabajo: Trabajo): string {
     trabajo.serviceType ||
     trabajo.service_type ||
     "Sin categoría"
-  )
+  );
 }
 
 function getEstado(trabajo: Trabajo): string {
-  return String(trabajo.estado || trabajo.status || "").toUpperCase()
+  return String(trabajo.estado || trabajo.status || "").toUpperCase();
 }
 
 function getMonto(trabajo: Trabajo): number {
-  return toNumber(trabajo.monto || trabajo.amount || trabajo.total)
+  return toNumber(trabajo.monto || trabajo.amount || trabajo.total);
 }
 
 function getComision(trabajo: Trabajo): number {
@@ -52,12 +52,12 @@ function getComision(trabajo: Trabajo): number {
     trabajo.comisionFixNow ||
       trabajo.commissionFixNow ||
       trabajo.comision ||
-      trabajo.commission
-  )
+      trabajo.commission,
+  );
 
-  if (comision > 0) return comision
+  if (comision > 0) return comision;
 
-  return getMonto(trabajo) * 0.15
+  return getMonto(trabajo) * 0.15;
 }
 
 function getFecha(trabajo: Trabajo): string {
@@ -68,7 +68,7 @@ function getFecha(trabajo: Trabajo): string {
     trabajo.created_at ||
     trabajo.fecha ||
     "-"
-  )
+  );
 }
 
 function getPaymentStatus(trabajo: Trabajo) {
@@ -78,15 +78,15 @@ function getPaymentStatus(trabajo: Trabajo) {
       trabajo.statusPago ||
       trabajo.payment_status ||
       trabajo.payment?.status ||
-      ""
-  ).toLowerCase()
+      "",
+  ).toLowerCase();
 
   if (
     directStatus === "paid" ||
     directStatus === "pagado" ||
     directStatus === "acreditado"
   ) {
-    return "Pagados"
+    return "Pagados";
   }
 
   if (
@@ -95,7 +95,7 @@ function getPaymentStatus(trabajo: Trabajo) {
     directStatus === "en_proceso" ||
     directStatus === "en proceso"
   ) {
-    return "En proceso"
+    return "En proceso";
   }
 
   if (
@@ -103,14 +103,14 @@ function getPaymentStatus(trabajo: Trabajo) {
     directStatus === "fallido" ||
     directStatus === "rechazado"
   ) {
-    return "Fallidos"
+    return "Fallidos";
   }
 
   if (directStatus === "pending" || directStatus === "pendiente") {
-    return "Pendientes"
+    return "Pendientes";
   }
 
-  const estadoTrabajo = getEstado(trabajo)
+  const estadoTrabajo = getEstado(trabajo);
 
   if (
     estadoTrabajo === "COMPLETADO" ||
@@ -118,7 +118,7 @@ function getPaymentStatus(trabajo: Trabajo) {
     estadoTrabajo === "PAID" ||
     estadoTrabajo === "PAGADO"
   ) {
-    return "Pagados"
+    return "Pagados";
   }
 
   if (
@@ -126,7 +126,7 @@ function getPaymentStatus(trabajo: Trabajo) {
     estadoTrabajo === "PROCESSING" ||
     estadoTrabajo === "PROCESANDO"
   ) {
-    return "En proceso"
+    return "En proceso";
   }
 
   if (
@@ -135,22 +135,22 @@ function getPaymentStatus(trabajo: Trabajo) {
     estadoTrabajo === "FAILED" ||
     estadoTrabajo === "FALLIDO"
   ) {
-    return "Fallidos"
+    return "Fallidos";
   }
 
-  return "Pendientes"
+  return "Pendientes";
 }
 
 function currencyStyle() {
   return {
     numFmt: '"$"#,##0',
-  }
+  };
 }
 
 function percentStyle() {
   return {
     numFmt: "0.00%",
-  }
+  };
 }
 
 function titleStyle() {
@@ -167,7 +167,7 @@ function titleStyle() {
       horizontal: "center",
       vertical: "center",
     },
-  }
+  };
 }
 
 function subtitleStyle() {
@@ -180,7 +180,7 @@ function subtitleStyle() {
     fill: {
       fgColor: { rgb: COLORS.lightGray },
     },
-  }
+  };
 }
 
 function headerStyle(color = COLORS.orange) {
@@ -202,7 +202,7 @@ function headerStyle(color = COLORS.orange) {
       left: { style: "thin", color: { rgb: "D1D5DB" } },
       right: { style: "thin", color: { rgb: "D1D5DB" } },
     },
-  }
+  };
 }
 
 function normalBorderStyle() {
@@ -213,69 +213,65 @@ function normalBorderStyle() {
       left: { style: "thin", color: { rgb: "E5E7EB" } },
       right: { style: "thin", color: { rgb: "E5E7EB" } },
     },
-  }
+  };
 }
 
-function applyHeaderStyle(sheet: XLSX.WorkSheet, rowNumber: number, color?: string) {
-  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
+function applyHeaderStyle(
+  sheet: XLSX.WorkSheet,
+  rowNumber: number,
+  color?: string,
+) {
+  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
 
   for (let col = range.s.c; col <= range.e.c; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: rowNumber - 1, c: col })
+    const cellAddress = XLSX.utils.encode_cell({ r: rowNumber - 1, c: col });
 
     if (sheet[cellAddress]) {
-      sheet[cellAddress].s = headerStyle(color)
+      sheet[cellAddress].s = headerStyle(color);
     }
   }
 }
 
 function applyTableBorders(sheet: XLSX.WorkSheet) {
-  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
+  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
 
   for (let row = range.s.r; row <= range.e.r; row++) {
     for (let col = range.s.c; col <= range.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
 
       if (sheet[cellAddress]) {
         sheet[cellAddress].s = {
           ...sheet[cellAddress].s,
           ...normalBorderStyle(),
-        }
+        };
       }
     }
   }
 }
 
 function setColumnWidths(sheet: XLSX.WorkSheet, widths: number[]) {
-  sheet["!cols"] = widths.map((wch) => ({ wch }))
+  sheet["!cols"] = widths.map((wch) => ({ wch }));
 }
 
 function createSheetFromJson(
   rows: Record<string, string | number>[],
-  headerColor = COLORS.orange
+  headerColor = COLORS.orange,
 ) {
-  const sheet = XLSX.utils.json_to_sheet(rows)
+  const sheet = XLSX.utils.json_to_sheet(rows);
 
-  applyHeaderStyle(sheet, 1, headerColor)
-  applyTableBorders(sheet)
+  applyHeaderStyle(sheet, 1, headerColor);
+  applyTableBorders(sheet);
 
-  return sheet
+  return sheet;
 }
 
 function addTitleToSheet(
   sheet: XLSX.WorkSheet,
   title: string,
   subtitle: string,
-  totalColumns: number
+  totalColumns: number,
 ) {
-  XLSX.utils.sheet_add_aoa(
-    sheet,
-    [
-      [title],
-      [subtitle],
-      [],
-    ],
-    { origin: "A1" }
-  )
+  XLSX.utils.sheet_add_aoa(sheet, [[title], [subtitle], []], { origin: "A1" });
 
   sheet["!merges"] = [
     {
@@ -286,22 +282,22 @@ function addTitleToSheet(
       s: { r: 1, c: 0 },
       e: { r: 1, c: totalColumns - 1 },
     },
-  ]
+  ];
 
-  sheet["A1"].s = titleStyle()
-  sheet["A2"].s = subtitleStyle()
+  sheet["A1"].s = titleStyle();
+  sheet["A2"].s = subtitleStyle();
 
-  sheet["!rows"] = [{ hpt: 28 }, { hpt: 22 }]
+  sheet["!rows"] = [{ hpt: 28 }, { hpt: 22 }];
 }
 
 function createExecutiveSummarySheet(data: {
-  ingresosBrutos: number
-  comisionFixNow: number
-  pagoProfesionales: number
-  pedidosCompletados: number
-  montoPromedioPorPedido: number
-  porcentajeComision: number
-  fechaGeneracion: string
+  ingresosBrutos: number;
+  comisionFixNow: number;
+  pagoProfesionales: number;
+  pedidosCompletados: number;
+  montoPromedioPorPedido: number;
+  porcentajeComision: number;
+  fechaGeneracion: string;
 }) {
   const rows = [
     ["FixNow — Reporte Financiero"],
@@ -339,9 +335,9 @@ function createExecutiveSummarySheet(data: {
       "Relación entre comisión FixNow e ingresos brutos",
     ],
     ["Fecha de generación", data.fechaGeneracion, "Fecha del reporte"],
-  ]
+  ];
 
-  const sheet = XLSX.utils.aoa_to_sheet(rows)
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
 
   sheet["!merges"] = [
     {
@@ -352,102 +348,102 @@ function createExecutiveSummarySheet(data: {
       s: { r: 1, c: 0 },
       e: { r: 1, c: 2 },
     },
-  ]
+  ];
 
-  sheet["A1"].s = titleStyle()
-  sheet["A2"].s = subtitleStyle()
+  sheet["A1"].s = titleStyle();
+  sheet["A2"].s = subtitleStyle();
 
-  applyHeaderStyle(sheet, 4, COLORS.orange)
-  applyTableBorders(sheet)
+  applyHeaderStyle(sheet, 4, COLORS.orange);
+  applyTableBorders(sheet);
 
-  const moneyRows = [5, 6, 7, 9]
+  const moneyRows = [5, 6, 7, 9];
   for (const row of moneyRows) {
-    const cell = `B${row}`
-    if (sheet[cell]) sheet[cell].s = { ...sheet[cell].s, ...currencyStyle() }
+    const cell = `B${row}`;
+    if (sheet[cell]) sheet[cell].s = { ...sheet[cell].s, ...currencyStyle() };
   }
 
   if (sheet["B10"]) {
-    sheet["B10"].s = { ...sheet["B10"].s, ...percentStyle() }
+    sheet["B10"].s = { ...sheet["B10"].s, ...percentStyle() };
   }
 
-  setColumnWidths(sheet, [34, 22, 52])
+  setColumnWidths(sheet, [34, 22, 52]);
 
-  sheet["!rows"] = [{ hpt: 30 }, { hpt: 24 }]
+  sheet["!rows"] = [{ hpt: 30 }, { hpt: 24 }];
 
-  return sheet
+  return sheet;
 }
 
 export function ExportFinancialExcelButton() {
   async function handleExport() {
-    const generatedAt = new Date()
+    const generatedAt = new Date();
 
     const [kpisRes, trabajosRes, metricasRes] = await Promise.all([
       fetch("/api/kpis"),
       fetch("/api/trabajos"),
       fetch("/api/metricas"),
-    ])
+    ]);
 
-    const kpis = await kpisRes.json()
-    const trabajosData = await trabajosRes.json()
-    const metricasData = await metricasRes.json()
+    const kpis = await kpisRes.json();
+    const trabajosData = await trabajosRes.json();
+    const metricasData = await metricasRes.json();
 
-    const trabajos: Trabajo[] = getArray(trabajosData, "trabajos")
-    const metricas: Metrica[] = getArray(metricasData, "metricas")
+    const trabajos: Trabajo[] = getArray(trabajosData, "trabajos");
+    const metricas: Metrica[] = getArray(metricasData, "metricas");
 
     const trabajosCompletados = trabajos.filter((trabajo) => {
-      const estado = getEstado(trabajo)
+      const estado = getEstado(trabajo);
 
       return (
         estado === "COMPLETADO" ||
         estado === "COMPLETED" ||
         estado === "PAID" ||
         estado === "PAGADO"
-      )
-    })
+      );
+    });
 
     const ingresosBrutos =
       toNumber(kpis.volumenTransacciones) ||
       trabajosCompletados.reduce(
         (total, trabajo) => total + getMonto(trabajo),
-        0
-      )
+        0,
+      );
 
     const comisionFixNow =
       toNumber(kpis.ingresosNetos) ||
       trabajosCompletados.reduce(
         (total, trabajo) => total + getComision(trabajo),
-        0
-      )
+        0,
+      );
 
-    const pagoProfesionales = ingresosBrutos - comisionFixNow
+    const pagoProfesionales = ingresosBrutos - comisionFixNow;
 
     const pedidosCompletados =
-      toNumber(kpis.pedidosCompletados) || trabajosCompletados.length
+      toNumber(kpis.pedidosCompletados) || trabajosCompletados.length;
 
     const montoPromedioPorPedido =
-      pedidosCompletados > 0 ? ingresosBrutos / pedidosCompletados : 0
+      pedidosCompletados > 0 ? ingresosBrutos / pedidosCompletados : 0;
 
     const porcentajeComision =
-      ingresosBrutos > 0 ? comisionFixNow / ingresosBrutos : 0
+      ingresosBrutos > 0 ? comisionFixNow / ingresosBrutos : 0;
 
-    const fechaGeneracion = generatedAt.toLocaleString("es-AR")
+    const fechaGeneracion = generatedAt.toLocaleString("es-AR");
 
-    const categorias = ["Plomería", "Gas", "Electricidad"]
+    const categorias = ["Plomería", "Gas", "Electricidad"];
 
     const ingresosPorCategoria = categorias.map((categoria) => {
       const trabajosCategoria = trabajosCompletados.filter(
-        (trabajo) => getCategoria(trabajo) === categoria
-      )
+        (trabajo) => getCategoria(trabajo) === categoria,
+      );
 
       const brutoCategoria = trabajosCategoria.reduce(
         (total, trabajo) => total + getMonto(trabajo),
-        0
-      )
+        0,
+      );
 
       const comisionCategoria = trabajosCategoria.reduce(
         (total, trabajo) => total + getComision(trabajo),
-        0
-      )
+        0,
+      );
 
       return {
         Categoría: categoria,
@@ -461,17 +457,17 @@ export function ExportFinancialExcelButton() {
             : 0,
         "Porcentaje del total":
           ingresosBrutos > 0 ? brutoCategoria / ingresosBrutos : 0,
-      }
-    })
+      };
+    });
 
-    const estadosBase = ["Pagados", "Pendientes", "En proceso", "Fallidos"]
+    const estadosBase = ["Pagados", "Pendientes", "En proceso", "Fallidos"];
 
     const estadosPago = estadosBase.map((estado) => {
       const cantidad = trabajos.filter(
-        (trabajo) => getPaymentStatus(trabajo) === estado
-      ).length
+        (trabajo) => getPaymentStatus(trabajo) === estado,
+      ).length;
 
-      const porcentaje = trabajos.length > 0 ? cantidad / trabajos.length : 0
+      const porcentaje = trabajos.length > 0 ? cantidad / trabajos.length : 0;
 
       const observacion =
         estado === "Pagados"
@@ -480,15 +476,15 @@ export function ExportFinancialExcelButton() {
             ? "Operaciones esperando confirmación"
             : estado === "En proceso"
               ? "Operaciones en procesamiento"
-              : "Operaciones que requieren revisión"
+              : "Operaciones que requieren revisión";
 
       return {
         Estado: estado,
         Cantidad: cantidad,
         Porcentaje: porcentaje,
         Observación: observacion,
-      }
-    })
+      };
+    });
 
     const evolucionMensual = metricas.map((metrica) => ({
       Mes: `${metrica.mes}/${metrica.anio}`,
@@ -498,28 +494,39 @@ export function ExportFinancialExcelButton() {
       "Clientes nuevos": toNumber(metrica.clientesNuevos),
       "Ingresos brutos": toNumber(metrica.ingresosTotal),
       "Monto promedio por pedido": toNumber(metrica.ticketPromedio),
-    }))
+    }));
 
-    const detalleTransacciones = trabajosCompletados.map((trabajo) => {
-      const monto = getMonto(trabajo)
-      const comision = getComision(trabajo)
+    const detalleTransacciones = trabajos.map((trabajo) => {
+      const monto = getMonto(trabajo);
+      const comision = getComision(trabajo);
+      const estadoOperativo = getEstado(trabajo);
+      const estadoPago = getPaymentStatus(trabajo);
+      const esPagado = estadoPago === "Pagados";
 
       return {
-        "ID trabajo": trabajo.id || trabajo.jobId || trabajo.job_id || "-",
-        Fecha: getFecha(trabajo),
+        "ID Trabajo": trabajo.id || trabajo.jobId || trabajo.job_id || "-",
+        "Fecha Solicitud":
+          trabajo.requested_date || trabajo.fechaCreacion || "-",
         Categoría: getCategoria(trabajo),
-        Estado: getEstado(trabajo) || "-",
-        "Monto total": monto,
-        "Comisión FixNow": comision,
-        "Monto profesional": monto - comision,
-        "Cliente ID": trabajo.clienteId || trabajo.clientId || trabajo.client_id || "-",
+        Urgencia: trabajo.urgency || trabajo.urgencia || "SCHEDULED",
+        Dirección: trabajo.direction || trabajo.direccion || "-",
+        "Estado Operativo": estadoOperativo || "-",
+        "Estado Pago": estadoPago || "-",
+        "Monto total (Cotizado)": monto,
+        // Solo sumamos comisiones reales si el pago entró
+        "Comisión FixNow (Real)": esPagado ? comision : 0,
+        "Monto Profesional (Real)": esPagado ? monto - comision : 0,
+        "Cliente ID":
+          trabajo.clienteId || trabajo.clientId || trabajo.client_id || "-",
         "Profesional ID":
           trabajo.profesionalId ||
           trabajo.professionalId ||
           trabajo.professional_id ||
           "-",
-      }
-    })
+        "Motivo de Cancelación":
+          trabajo.cancellation_reason || trabajo.motivoCancelacion || "N/A",
+      };
+    });
 
     const datosParaGraficos = [
       {
@@ -543,7 +550,7 @@ export function ExportFinancialExcelButton() {
         Categoría: "Electricidad",
         Valor:
           ingresosPorCategoria.find(
-            (item) => item.Categoría === "Electricidad"
+            (item) => item.Categoría === "Electricidad",
           )?.["Ingresos brutos"] || 0,
       },
       ...estadosPago.map((estado) => ({
@@ -551,7 +558,7 @@ export function ExportFinancialExcelButton() {
         Categoría: estado.Estado,
         Valor: estado.Cantidad,
       })),
-    ]
+    ];
 
     const indicadoresFinancieros = [
       {
@@ -594,9 +601,9 @@ export function ExportFinancialExcelButton() {
         Valor: fechaGeneracion,
         Observación: "Reporte generado desde Analytics App",
       },
-    ]
+    ];
 
-    const workbook = XLSX.utils.book_new()
+    const workbook = XLSX.utils.book_new();
 
     const resumenEjecutivoSheet = createExecutiveSummarySheet({
       ingresosBrutos,
@@ -606,35 +613,35 @@ export function ExportFinancialExcelButton() {
       montoPromedioPorPedido,
       porcentajeComision,
       fechaGeneracion,
-    })
+    });
 
     const indicadoresSheet = createSheetFromJson(
       indicadoresFinancieros,
-      COLORS.orange
-    )
+      COLORS.orange,
+    );
 
     const categoriaSheet = createSheetFromJson(
       ingresosPorCategoria,
-      COLORS.green
-    )
+      COLORS.green,
+    );
 
-    const estadosSheet = createSheetFromJson(estadosPago, COLORS.blue)
+    const estadosSheet = createSheetFromJson(estadosPago, COLORS.blue);
 
-    const mensualSheet = createSheetFromJson(evolucionMensual, COLORS.gold)
+    const mensualSheet = createSheetFromJson(evolucionMensual, COLORS.gold);
 
-    const detalleSheet = createSheetFromJson(
-      detalleTransacciones,
-      COLORS.dark
-    )
+    const detalleSheet = createSheetFromJson(detalleTransacciones, COLORS.dark);
 
-    const graficosSheet = createSheetFromJson(datosParaGraficos, COLORS.orange)
+    const graficosSheet = createSheetFromJson(datosParaGraficos, COLORS.orange);
 
-    setColumnWidths(indicadoresSheet, [34, 22, 52])
-    setColumnWidths(categoriaSheet, [22, 24, 20, 20, 24, 28, 22])
-    setColumnWidths(estadosSheet, [18, 14, 16, 36])
-    setColumnWidths(mensualSheet, [16, 18, 24, 24, 20, 20, 28])
-    setColumnWidths(detalleSheet, [30, 24, 18, 16, 18, 18, 22, 32, 32])
-    setColumnWidths(graficosSheet, [28, 22, 18])
+    setColumnWidths(indicadoresSheet, [34, 22, 52]);
+    setColumnWidths(categoriaSheet, [22, 24, 20, 20, 24, 28, 22]);
+    setColumnWidths(estadosSheet, [18, 14, 16, 36]);
+    setColumnWidths(mensualSheet, [16, 18, 24, 24, 20, 20, 28]);
+    setColumnWidths(
+      detalleSheet,
+      [30, 20, 18, 16, 25, 18, 16, 22, 22, 24, 32, 32, 40],
+    );
+    setColumnWidths(graficosSheet, [28, 22, 18]);
 
     for (const sheet of [
       categoriaSheet,
@@ -642,17 +649,17 @@ export function ExportFinancialExcelButton() {
       detalleSheet,
       indicadoresSheet,
     ]) {
-      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
+      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
 
       for (let row = range.s.r + 1; row <= range.e.r; row++) {
         for (let col = range.s.c; col <= range.e.c; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
-          const cell = sheet[cellAddress]
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          const cell = sheet[cellAddress];
 
-          if (!cell) continue
+          if (!cell) continue;
 
-          const headerAddress = XLSX.utils.encode_cell({ r: 0, c: col })
-          const header = String(sheet[headerAddress]?.v || "").toLowerCase()
+          const headerAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+          const header = String(sheet[headerAddress]?.v || "").toLowerCase();
 
           if (
             header.includes("monto") ||
@@ -664,31 +671,31 @@ export function ExportFinancialExcelButton() {
             cell.s = {
               ...cell.s,
               ...currencyStyle(),
-            }
+            };
           }
 
           if (header.includes("porcentaje")) {
             cell.s = {
               ...cell.s,
               ...percentStyle(),
-            }
+            };
           }
         }
       }
     }
 
     for (const sheet of [estadosSheet]) {
-      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
+      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
 
       for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: row, c: 2 })
-        const cell = sheet[cellAddress]
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: 2 });
+        const cell = sheet[cellAddress];
 
         if (cell) {
           cell.s = {
             ...cell.s,
             ...percentStyle(),
-          }
+          };
         }
       }
     }
@@ -697,84 +704,72 @@ export function ExportFinancialExcelButton() {
       indicadoresSheet,
       "Indicadores Financieros",
       "Métricas principales de ingresos, comisiones y pagos",
-      3
-    )
+      3,
+    );
 
     addTitleToSheet(
       categoriaSheet,
       "Ingresos por Categoría",
       "Distribución de ingresos por tipo de servicio",
-      7
-    )
+      7,
+    );
 
     addTitleToSheet(
       estadosSheet,
       "Estados de Pago",
       "Seguimiento de operaciones pagadas, pendientes, en proceso y fallidas",
-      4
-    )
+      4,
+    );
 
     addTitleToSheet(
       mensualSheet,
       "Evolución Mensual",
       "Comportamiento mensual de trabajos, clientes e ingresos",
-      7
-    )
+      7,
+    );
 
     addTitleToSheet(
       detalleSheet,
       "Detalle de Transacciones",
       "Listado administrativo de trabajos completados y pagos asociados",
-      9
-    )
+      9,
+    );
 
     addTitleToSheet(
       graficosSheet,
       "Datos para Gráficos",
       "Tablas preparadas para generar gráficos en Excel",
-      3
-    )
+      3,
+    );
 
     XLSX.utils.book_append_sheet(
       workbook,
       resumenEjecutivoSheet,
-      "Resumen Ejecutivo"
-    )
+      "Resumen Ejecutivo",
+    );
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      indicadoresSheet,
-      "Indicadores"
-    )
+    XLSX.utils.book_append_sheet(workbook, indicadoresSheet, "Indicadores");
 
     XLSX.utils.book_append_sheet(
       workbook,
       categoriaSheet,
-      "Ingresos Categoria"
-    )
+      "Ingresos Categoria",
+    );
 
-    XLSX.utils.book_append_sheet(workbook, estadosSheet, "Estados Pago")
+    XLSX.utils.book_append_sheet(workbook, estadosSheet, "Estados Pago");
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      mensualSheet,
-      "Evolucion Mensual"
-    )
+    XLSX.utils.book_append_sheet(workbook, mensualSheet, "Evolucion Mensual");
 
-    XLSX.utils.book_append_sheet(workbook, detalleSheet, "Transacciones")
+    XLSX.utils.book_append_sheet(workbook, detalleSheet, "Transacciones");
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      graficosSheet,
-      "Datos Graficos"
-    )
+    XLSX.utils.book_append_sheet(workbook, graficosSheet, "Datos Graficos");
 
     XLSX.writeFile(
       workbook,
       `reporte-financiero-fixnow-${generatedAt
         .toISOString()
-        .slice(0, 10)}.xlsx`
-    )
+        .slice(0, 10)}.xlsx`,
+    );
   }
 
   return (
@@ -782,5 +777,5 @@ export function ExportFinancialExcelButton() {
       <Download className="h-4 w-4" />
       Descargar Reporte Financiero
     </Button>
-  )
+  );
 }

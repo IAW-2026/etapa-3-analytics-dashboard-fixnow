@@ -1,6 +1,6 @@
 // Modulo auxiliar para conectarse con Paymets App
 export async function getPaymentsData() {
-  const url = process.env.NEXT_PUBLIC_EXTERNAL_API_PAYMENTS;
+  const url = process.env.EXTERNAL_API_PAYMENTS;
   
   if (!url) throw new Error('URL de Payments App no configurada');
 
