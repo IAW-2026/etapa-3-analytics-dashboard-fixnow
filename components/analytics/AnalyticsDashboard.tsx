@@ -63,26 +63,26 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    try{
+    try {
       const response = await fetch("/api/cron/sync", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
           // "Authorizarion": `Bearer ${process.env.CRON_SECRET}`
-        }
+        },
       });
 
-      if(!response.ok){
+      if (!response.ok) {
         throw new Error("Error al sincronizar las bases de datos");
       }
 
       window.location.reload();
-    } catch(error){
+    } catch (error) {
       console.error("Hubo un error al actualizar:", error);
-    } finally{
-      setIsRefreshing(false)
+    } finally {
+      setIsRefreshing(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col">
@@ -115,8 +115,16 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <span className="hidden text-xs text-muted-foreground sm:inline">
             Actualizado: {now}
           </span>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}/>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
             {isRefreshing ? "Actualizando..." : "Actualizar"}
           </Button>
         </div>
@@ -141,7 +149,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
             <AnalisisCharts period={period} />
             <AnalisisComparativaChart period={period} />
             <PaymentsFinancialInsight period={period} />
-            <PaymentStatusChart />
+            <PaymentStatusChart period={period} />
             <AnalisisCancelaciones period={period} />
           </>
         )}
