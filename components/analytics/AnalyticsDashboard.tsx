@@ -158,11 +158,11 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <>
             <TopProfessionals />
             <ProfessionalRevenueRanking />
+            <AlertasCalidad />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <RatingHistogram />
               <ReseñasDonut />
             </div>
-            <AlertasCalidad />
           </>
         )}
       </div>

@@ -148,7 +148,10 @@ export function ReseñasDonut() {
               </div>
 
               {/* Barra de progreso */}
-              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-destructive/30">
+              <div
+                className="mt-1 h-2 w-full overflow-hidden rounded-full"
+                style={{ backgroundColor: "var(--destructive)" }}
+              >
                 <div
                   className="h-full rounded-full bg-[#22c55e] transition-all duration-500"
                   style={{
