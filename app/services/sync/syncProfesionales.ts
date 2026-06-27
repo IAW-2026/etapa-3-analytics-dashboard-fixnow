@@ -57,7 +57,7 @@ export async function syncProfesionales(fecha?: string){
         if(!id) continue;
 
         const actividad = resumenTrabajos[id] || { completados:0, cancelados: 0 };
-        const pagoResumen = ingresosPorProf[id].ingresos || { ingresos: 0, ultimaActividad: undefined }
+        const pagoResumen = ingresosPorProf[id] || { ingresos: 0, ultimaActividad: undefined }
         const ingresos = pagoResumen.ingresos;
         const ultimaActividad = pagoResumen.ultimaActividad;
         const activo = !!ultimaActividad && (referenceDate.getTime() - ultimaActividad.getTime()) <= 30*24*60*60*1000;
@@ -73,6 +73,9 @@ export async function syncProfesionales(fecha?: string){
                 activo,
             },
             create: {
+                nombre: profesional.fullName,
+                categoria: profesional.serviceType,
+                ciudad: "Bahia Blanca",
                 profesionalExternoId: profesional.id,
                 calificacionPromedio: profesional.ratingPromedio,
                 totalTrabajos: actividad.completados,

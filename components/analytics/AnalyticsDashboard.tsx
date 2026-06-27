@@ -51,6 +51,7 @@ const periods: { value: Period; label: string }[] = [
 
 export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
   const [period, setPeriod] = useState<Period>("6m");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { title, subtitle } = titles[currentView];
   const now = new Date().toLocaleString("es-CL", {
@@ -59,6 +60,29 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try{
+      const response = await fetch("/api/cron/sync", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          // "Authorizarion": `Bearer ${process.env.CRON_SECRET}`
+        }
+      });
+
+      if(!response.ok){
+        throw new Error("Error al sincronizar las bases de datos");
+      }
+
+      window.location.reload();
+    } catch(error){
+      console.error("Hubo un error al actualizar:", error);
+    } finally{
+      setIsRefreshing(false)
+    }
+  }
 
   return (
     <div className="flex flex-col">
@@ -91,9 +115,9 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <span className="hidden text-xs text-muted-foreground sm:inline">
             Actualizado: {now}
           </span>
-          <Button variant="outline" size="sm" className="gap-2">
-            <RefreshCw className="size-4" />
-            Actualizar
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}/>
+            {isRefreshing ? "Actualizando..." : "Actualizar"}
           </Button>
         </div>
       </header>
