@@ -1,4 +1,5 @@
 "use client";
+import { AnalyticsChat } from "@/components/analytics/AnalyticsChat";
 import { ProfessionalRevenueRanking } from "@/components/analytics/ProfessionalRevenueRanking";
 import { PaymentsFinancialInsight } from "@/components/analytics/PaymentsFinancialInsight";
 import { RefreshCw } from "lucide-react";
@@ -166,6 +167,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           </>
         )}
       </div>
+      <AnalyticsChat />
     </div>
   );
 }
