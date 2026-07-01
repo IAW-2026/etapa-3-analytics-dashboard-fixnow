@@ -37,9 +37,9 @@ const titles: Record<AnalyticsView, { title: string; subtitle: string }> = {
     title: "Análisis de Operaciones",
     subtitle: "Distribución de trabajos, tasa de éxito y tendencia de ingresos",
   },
-  monitoreo: {
-    title: "Monitoreo de Profesionales",
-    subtitle: "Estado, riesgo y actividad de los profesionales de la plataforma",
+  profesionales: {
+    title: "Profesionales",
+    subtitle: "Ranking, actividad y alertas de los profesionales de la plataforma",
   },
 };
 
@@ -160,8 +160,8 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           </>
         )}
 
-        {/* MONITOREO — estado y riesgo de profesionales */}
-        {currentView === "monitoreo" && (
+        {/* PROFESIONALES — estado y riesgo de profesionales */}
+        {currentView === "profesionales" && (
           <>
             <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
               <ActividadProfesionales />
