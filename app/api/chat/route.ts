@@ -859,7 +859,7 @@ export async function POST(req: NextRequest) {
       loops++;
 
       const result: any = await ai.models.generateContent({
-        model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+        model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite",
         contents: contents as any,
         config: {
           systemInstruction,
