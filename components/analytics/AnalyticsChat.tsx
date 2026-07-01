@@ -19,13 +19,9 @@ interface GeminiHistoryPart {
 }
 
 const SUGGESTED_PROMPTS = [
-  "¿Qué datos tengo cargados y de qué meses?",
-  "¿Cuánto se ganó en marzo?",
   "Compará los ingresos mes a mes",
   "¿Qué categoría generó más ingresos?",
-  "¿Qué categoría tuvo más cancelaciones?",
   "¿Cuál es el motivo de cancelación más frecuente?",
-  "Top 5 profesionales por facturación",
   "Detectá anomalías y dame recomendaciones",
 ];
 
@@ -253,10 +249,10 @@ export function AnalyticsChat() {
             )}
 
             {error && (
-              <p className="whitespace-pre-wrap text-xs text-destructive">
-                {error}
-              </p>
-            )}
+                <p className="whitespace-pre-wrap rounded-md bg-yellow-50 px-3 py-2 text-xs text-yellow-700">
+                    {error}
+                </p>
+                )}
           </div>
 
           <form
