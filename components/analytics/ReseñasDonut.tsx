@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Tooltip, ResponsiveContainer } from "recharts";
 import {
   Card,
   CardContent,
@@ -48,13 +48,13 @@ export function ReseñasDonut() {
           name: "Aceptadas",
           value: data.aceptadas,
           pct: pct(data.aceptadas, data.total),
-          color: "#22c55e",
+          fill: "var(--plumbing)",
         },
         {
           name: "Rechazadas",
           value: data.rechazadas,
           pct: pct(data.rechazadas, data.total),
-          color: "var(--destructive)",
+          fill: "var(--destructive)",
         },
       ]
     : [];
@@ -98,11 +98,7 @@ export function ReseñasDonut() {
                     startAngle={90}
                     endAngle={-270}
                     strokeWidth={0}
-                  >
-                    {chartData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
+                  />
                   <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
@@ -119,7 +115,7 @@ export function ReseñasDonut() {
             <div className="flex w-full flex-col gap-3">
               <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full bg-[#22c55e]" />
+                  <span className="size-2.5 rounded-full bg-plumbing" />
                   <span className="text-sm font-medium">Aceptadas</span>
                 </div>
                 <div className="text-right">
@@ -153,8 +149,9 @@ export function ReseñasDonut() {
                 style={{ backgroundColor: "var(--destructive)" }}
               >
                 <div
-                  className="h-full rounded-full bg-[#22c55e] transition-all duration-500"
+                  className="h-full rounded-full transition-all duration-500"
                   style={{
+                    backgroundColor: "var(--plumbing)",
                     width: `${pct(data.aceptadas, data.total)}%`,
                   }}
                 />

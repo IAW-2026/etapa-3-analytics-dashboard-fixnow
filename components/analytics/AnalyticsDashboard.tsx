@@ -14,6 +14,7 @@ import { TopProfessionals } from "@/components/analytics/TopProfessionals";
 import { RatingHistogram } from "@/components/analytics/RatingHistogram";
 import { AlertasCalidad } from "@/components/analytics/AlertasCalidad";
 import { ReseñasDonut } from "@/components/analytics/ReseñasDonut";
+import { ActividadProfesionales } from "@/components/analytics/ActividadProfesionales";
 import type { AnalyticsView } from "@/components/analytics/AnalyticsSidebar";
 import { useState } from "react";
 import { AnalisisCharts } from "@/components/analytics/AnalisisCharts";
@@ -36,10 +37,9 @@ const titles: Record<AnalyticsView, { title: string; subtitle: string }> = {
     title: "Análisis de Operaciones",
     subtitle: "Distribución de trabajos, tasa de éxito y tendencia de ingresos",
   },
-  monitoreo: {
-    title: "Monitoreo de Profesionales",
-    subtitle:
-      "Ranking y desempeño de los mejores profesionales de la plataforma",
+  profesionales: {
+    title: "Profesionales",
+    subtitle: "Ranking, actividad y alertas de los profesionales de la plataforma",
   },
 };
 
@@ -69,7 +69,6 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          // "Authorizarion": `Bearer ${process.env.CRON_SECRET}`
         },
       });
 
@@ -95,7 +94,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Selector de período — solo visible en Análisis */}
+          {/* Selector de período — visible en Análisis */}
           {currentView === "analisis" && (
             <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
               {periods.map((p) => (
@@ -132,6 +131,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
       </header>
 
       <div className="space-y-6 p-8">
+        {/* RESUMEN — vista de alto nivel, métricas globales */}
         {currentView === "resumen" && (
           <>
             <KpiCards />
@@ -144,6 +144,7 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
           </>
         )}
 
+        {/* ANÁLISIS — operaciones y calidad a lo largo del tiempo */}
         {currentView === "analisis" && (
           <>
             <AnalisisInsightsBanner period={period} />
@@ -152,18 +153,22 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
             <PaymentsFinancialInsight period={period} />
             <PaymentStatusChart period={period} />
             <AnalisisCancelaciones period={period} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <RatingHistogram period={period} />
+              <ReseñasDonut />
+            </div>
           </>
         )}
 
-        {currentView === "monitoreo" && (
+        {/* PROFESIONALES — estado y riesgo de profesionales */}
+        {currentView === "profesionales" && (
           <>
-            <TopProfessionals />
-            <ProfessionalRevenueRanking />
-            <AlertasCalidad />
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <RatingHistogram />
-              <ReseñasDonut />
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+              <ActividadProfesionales />
+              <AlertasCalidad />
             </div>
+            <ProfessionalRevenueRanking />
+            <TopProfessionals />
           </>
         )}
       </div>
