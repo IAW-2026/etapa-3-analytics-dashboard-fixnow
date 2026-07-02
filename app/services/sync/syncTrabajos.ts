@@ -122,14 +122,20 @@ export async function syncTrabajos(){
                                     fecha: cancelacionFecha,
                                 },
                             },
-                        } : {delete: true}
+                        } : undefined
                 },
             }),
         )
     }
 
-    if(operaciones.length){
-        await prisma.$transaction(operaciones)
+    if(operaciones.length > 0){
+        const BATCH_SIZE = 10;
+        for(let i = 0; i < operaciones.length; i += BATCH_SIZE){
+            const batch = operaciones.slice(i, i + BATCH_SIZE);
+            await prisma.$transaction(batch,{
+                timeout:10000
+            });
+        }
     }
 
     console.log(`${jobs.length} trabajos sincronizados.`);
