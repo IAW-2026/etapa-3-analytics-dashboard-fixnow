@@ -25,7 +25,7 @@ export function ActividadProfesionales() {
   const activos = data?.[0]?.cantidad ?? 0;
 
   return (
-    <Card className="border-border">
+    <Card className="flex h-full flex-col border-border">
       <CardHeader>
         <CardTitle className="font-(family-name:--font-display) text-lg">
           Actividad de Profesionales
@@ -36,7 +36,7 @@ export function ActividadProfesionales() {
             : "Distribución por última actividad registrada · Driver App"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-1 flex-col justify-between">
         {isLoading || !data ? (
           <div className="space-y-4">
             <Skeleton className="h-3 w-full rounded-full" />
