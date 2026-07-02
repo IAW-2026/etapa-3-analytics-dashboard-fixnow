@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { LayoutDashboard, PieChart, Trophy, LogOut } from "lucide-react";
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type AnalyticsView = "resumen" | "analisis" | "monitoreo";
+export type AnalyticsView = "resumen" | "analisis" | "profesionales";
 
 interface AnalyticsSidebarProps {
   currentView: AnalyticsView;
@@ -22,7 +22,7 @@ interface AnalyticsSidebarProps {
 const navItems = [
   { id: "resumen" as const, label: "Resumen", icon: LayoutDashboard },
   { id: "analisis" as const, label: "Análisis", icon: PieChart },
-  { id: "monitoreo" as const, label: "Monitoreo", icon: Trophy },
+  { id: "profesionales" as const, label: "Profesionales", icon: Trophy },
 ];
 
 export function AnalyticsSidebar({

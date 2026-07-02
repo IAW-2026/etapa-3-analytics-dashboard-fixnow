@@ -533,9 +533,31 @@ export interface RatingBucket {
   cantidad: number;
 }
 
-export async function fetchRatingDistribution(): Promise<RatingBucket[]> {
-  const res = await fetch("/api/profesionales/ratings");
+export async function fetchRatingDistribution(
+  period?: Period,
+): Promise<RatingBucket[]> {
+  const params = new URLSearchParams();
+  if (period) {
+    const days: Record<Period, number> = { "30d": 30, "90d": 90, "6m": 180, "1y": 365 };
+    const desde = new Date();
+    desde.setDate(desde.getDate() - days[period]);
+    params.set("desde", desde.toISOString().split("T")[0]);
+  }
+  const res = await fetch(`/api/profesionales/ratings?${params}`);
   if (!res.ok) throw new Error("Error al cargar distribución de ratings");
+  return res.json();
+}
+
+// --- Actividad de profesionales ----------------------------------------------
+export interface ActividadBucket {
+  bucket: string;
+  cantidad: number;
+  fill: string;
+}
+
+export async function fetchActividadProfesionales(): Promise<ActividadBucket[]> {
+  const res = await fetch("/api/profesionales/actividad");
+  if (!res.ok) throw new Error("Error al cargar actividad de profesionales");
   return res.json();
 }
 

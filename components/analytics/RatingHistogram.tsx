@@ -9,7 +9,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import {
   Card,
@@ -24,17 +23,18 @@ import {
   formatNumber,
   type RatingBucket,
 } from "@/lib/analytics-data";
+import type { Period } from "@/components/analytics/AnalyticsDashboard";
 
 const STAR_COLORS: Record<number, string> = {
   1: "var(--destructive)",
-  2: "#f97316",
-  3: "#eab308",
-  4: "var(--electrical)",
-  5: "#22c55e",
+  2: "var(--brand-accent)",
+  3: "var(--electrical)",
+  4: "var(--plumbing)",
+  5: "var(--gas)",
 };
 
-function StarLabel({ value }: { value: number }) {
-  return <span>{"★".repeat(value)}</span>;
+interface RatingHistogramProps {
+  period?: Period;
 }
 
 function CustomTooltip({
@@ -48,19 +48,29 @@ function CustomTooltip({
   const { estrellas, cantidad } = payload[0].payload;
   return (
     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
-      <p className="font-medium">{"★".repeat(estrellas)} {estrellas} estrella{estrellas !== 1 ? "s" : ""}</p>
+      <p className="font-medium">
+        {"★".repeat(estrellas)} {estrellas} estrella{estrellas !== 1 ? "s" : ""}
+      </p>
       <p className="text-muted-foreground">{formatNumber(cantidad)} reseñas</p>
     </div>
   );
 }
 
-export function RatingHistogram() {
-  const { data, isLoading } = useSWR<RatingBucket[]>(
-    "rating-distribution",
-    fetchRatingDistribution,
+export function RatingHistogram({ period }: RatingHistogramProps) {
+  const { data: raw, isLoading } = useSWR<RatingBucket[]>(
+    `rating-distribution-${period ?? "all"}`,
+    () => fetchRatingDistribution(period),
   );
 
-  const total = data?.reduce((acc, b) => acc + b.cantidad, 0) ?? 0;
+  const data = raw?.map((b) => ({ ...b, fill: STAR_COLORS[b.estrellas] })) ?? [];
+  const total = data.reduce((acc, b) => acc + b.cantidad, 0);
+
+  const periodLabel: Record<Period, string> = {
+    "30d": "últimos 30 días",
+    "90d": "últimos 90 días",
+    "6m": "últimos 6 meses",
+    "1y": "último año",
+  };
 
   return (
     <Card className="border-border">
@@ -70,12 +80,12 @@ export function RatingHistogram() {
         </CardTitle>
         <CardDescription>
           {total > 0
-            ? `${formatNumber(total)} reseñas en total · Feedback App`
+            ? `${formatNumber(total)} reseñas · ${period ? periodLabel[period] : "histórico"} · Feedback App`
             : "Reseñas por cantidad de estrellas · Feedback App"}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading || !data ? (
+        {isLoading || !raw ? (
           <Skeleton className="h-48 w-full" />
         ) : (
           <ResponsiveContainer width="100%" height={192}>
@@ -100,17 +110,15 @@ export function RatingHistogram() {
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
+                tickFormatter={(v) =>
+                  v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v
+                }
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.4 }} />
-              <Bar dataKey="cantidad" radius={[4, 4, 0, 0]}>
-                {data.map((entry) => (
-                  <Cell
-                    key={entry.estrellas}
-                    fill={STAR_COLORS[entry.estrellas]}
-                  />
-                ))}
-              </Bar>
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+              />
+              <Bar dataKey="cantidad" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}

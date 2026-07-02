@@ -1,32 +1,42 @@
-"use client"
+"use client";
 
-import * as XLSX from "xlsx-js-style"
-import { Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import ExcelJS from "exceljs";
+import Chart from "chart.js/auto";
+import { Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-type Trabajo = Record<string, any>
-type Metrica = Record<string, any>
+type Trabajo = Record<string, any>;
+type Metrica = Record<string, any>;
 
-const COLORS = {
-  dark: "1F2937",
-  orange: "D98A6A",
-  green: "7BA58D",
-  blue: "7DB3E8",
-  gold: "D8B47A",
-  red: "DC2626",
-  lightGray: "F3F4F6",
-  white: "FFFFFF",
-}
+// ---------------------------------------------------------------------------
+// Paleta (ARGB, formato que usa ExcelJS)
+// ---------------------------------------------------------------------------
+const PALETTE = {
+  dark: "FF1F2937",
+  orange: "FFD98A6A",
+  green: "FF7BA58D",
+  blue: "FF7DB3E8",
+  gold: "FFD8B47A",
+  red: "FFDC2626",
+  lightGray: "FFF3F4F6",
+  border: "FFE5E7EB",
+  white: "FFFFFFFF",
+  textDark: "FF111827",
+};
 
+// ---------------------------------------------------------------------------
+// Helpers de extracción de datos (misma lógica que ya tenías)
+// ---------------------------------------------------------------------------
 function toNumber(value: unknown): number {
-  const parsed = Number(value || 0)
-  return Number.isFinite(parsed) ? parsed : 0
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function getArray(data: any, key: string) {
-  if (Array.isArray(data)) return data
-  if (Array.isArray(data?.[key])) return data[key]
-  return []
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.[key])) return data[key];
+  return [];
 }
 
 function getCategoria(trabajo: Trabajo): string {
@@ -36,15 +46,15 @@ function getCategoria(trabajo: Trabajo): string {
     trabajo.serviceType ||
     trabajo.service_type ||
     "Sin categoría"
-  )
+  );
 }
 
 function getEstado(trabajo: Trabajo): string {
-  return String(trabajo.estado || trabajo.status || "").toUpperCase()
+  return String(trabajo.estado || trabajo.status || "").toUpperCase();
 }
 
 function getMonto(trabajo: Trabajo): number {
-  return toNumber(trabajo.monto || trabajo.amount || trabajo.total)
+  return toNumber(trabajo.monto || trabajo.amount || trabajo.total);
 }
 
 function getComision(trabajo: Trabajo): number {
@@ -52,735 +62,496 @@ function getComision(trabajo: Trabajo): number {
     trabajo.comisionFixNow ||
       trabajo.commissionFixNow ||
       trabajo.comision ||
-      trabajo.commission
-  )
-
-  if (comision > 0) return comision
-
-  return getMonto(trabajo) * 0.15
+      trabajo.commission,
+  );
+  if (comision > 0) return comision;
+  return getMonto(trabajo) * 0.15;
 }
 
-function getFecha(trabajo: Trabajo): string {
-  return (
-    trabajo.completedAt ||
-    trabajo.completed_at ||
-    trabajo.createdAt ||
-    trabajo.created_at ||
-    trabajo.fecha ||
-    "-"
-  )
-}
-
-function getPaymentStatus(trabajo: Trabajo) {
+function getPaymentStatus(trabajo: Trabajo): "Pagados" | "Pendientes" | "En proceso" | "Fallidos" {
   const directStatus = String(
     trabajo.paymentStatus ||
       trabajo.estadoPago ||
       trabajo.statusPago ||
       trabajo.payment_status ||
       trabajo.payment?.status ||
-      ""
-  ).toLowerCase()
+      "",
+  ).toLowerCase();
 
-  if (
-    directStatus === "paid" ||
-    directStatus === "pagado" ||
-    directStatus === "acreditado"
-  ) {
-    return "Pagados"
-  }
+  if (["paid", "pagado", "acreditado"].includes(directStatus)) return "Pagados";
+  if (["processing", "procesando", "en_proceso", "en proceso"].includes(directStatus))
+    return "En proceso";
+  if (["failed", "fallido", "rechazado"].includes(directStatus)) return "Fallidos";
+  if (["pending", "pendiente"].includes(directStatus)) return "Pendientes";
 
-  if (
-    directStatus === "processing" ||
-    directStatus === "procesando" ||
-    directStatus === "en_proceso" ||
-    directStatus === "en proceso"
-  ) {
-    return "En proceso"
-  }
-
-  if (
-    directStatus === "failed" ||
-    directStatus === "fallido" ||
-    directStatus === "rechazado"
-  ) {
-    return "Fallidos"
-  }
-
-  if (directStatus === "pending" || directStatus === "pendiente") {
-    return "Pendientes"
-  }
-
-  const estadoTrabajo = getEstado(trabajo)
-
-  if (
-    estadoTrabajo === "COMPLETADO" ||
-    estadoTrabajo === "COMPLETED" ||
-    estadoTrabajo === "PAID" ||
-    estadoTrabajo === "PAGADO"
-  ) {
-    return "Pagados"
-  }
-
-  if (
-    estadoTrabajo === "EN_PROCESO" ||
-    estadoTrabajo === "PROCESSING" ||
-    estadoTrabajo === "PROCESANDO"
-  ) {
-    return "En proceso"
-  }
-
-  if (
-    estadoTrabajo === "CANCELADO" ||
-    estadoTrabajo === "CANCELLED" ||
-    estadoTrabajo === "FAILED" ||
-    estadoTrabajo === "FALLIDO"
-  ) {
-    return "Fallidos"
-  }
-
-  return "Pendientes"
+  const estado = getEstado(trabajo);
+  if (["COMPLETADO", "COMPLETED", "PAID", "PAGADO"].includes(estado)) return "Pagados";
+  if (["EN_PROCESO", "PROCESSING", "PROCESANDO"].includes(estado)) return "En proceso";
+  if (["CANCELADO", "CANCELLED", "FAILED", "FALLIDO"].includes(estado)) return "Fallidos";
+  return "Pendientes";
 }
 
-function currencyStyle() {
-  return {
-    numFmt: '"$"#,##0',
-  }
-}
+const ESTADO_FILL: Record<string, string> = {
+  Pagados: PALETTE.green,
+  "En proceso": PALETTE.blue,
+  Pendientes: PALETTE.gold,
+  Fallidos: PALETTE.red,
+};
 
-function percentStyle() {
-  return {
-    numFmt: "0.00%",
-  }
-}
+// ---------------------------------------------------------------------------
+// Render de gráficos a imagen (Chart.js sobre un canvas offscreen)
+// ---------------------------------------------------------------------------
+async function renderChartPNG(
+  config: any,
+  width = 520,
+  height = 300,
+): Promise<string> {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
 
-function titleStyle() {
-  return {
-    font: {
-      bold: true,
-      sz: 18,
-      color: { rgb: COLORS.white },
+  const chart = new Chart(ctx, {
+    ...config,
+    options: {
+      ...config.options,
+      responsive: false,
+      animation: false,
+      devicePixelRatio: 2,
     },
-    fill: {
-      fgColor: { rgb: COLORS.dark },
-    },
-    alignment: {
-      horizontal: "center",
-      vertical: "center",
-    },
-  }
+  });
+
+  // Dar un tick para asegurar que terminó de pintar antes de leer el canvas
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  const base64 = canvas.toDataURL("image/png").split(",")[1];
+  chart.destroy();
+  return base64;
 }
 
-function subtitleStyle() {
-  return {
-    font: {
-      bold: true,
-      sz: 12,
-      color: { rgb: COLORS.dark },
-    },
-    fill: {
-      fgColor: { rgb: COLORS.lightGray },
-    },
-  }
+// ---------------------------------------------------------------------------
+// Helpers de estilo ExcelJS
+// ---------------------------------------------------------------------------
+function thinBorder(color = PALETTE.border) {
+  const side = { style: "thin" as const, color: { argb: color } };
+  return { top: side, bottom: side, left: side, right: side };
 }
 
-function headerStyle(color = COLORS.orange) {
-  return {
-    font: {
-      bold: true,
-      color: { rgb: COLORS.white },
-    },
-    fill: {
-      fgColor: { rgb: color },
-    },
-    alignment: {
-      horizontal: "center",
-      vertical: "center",
-    },
-    border: {
-      top: { style: "thin", color: { rgb: "D1D5DB" } },
-      bottom: { style: "thin", color: { rgb: "D1D5DB" } },
-      left: { style: "thin", color: { rgb: "D1D5DB" } },
-      right: { style: "thin", color: { rgb: "D1D5DB" } },
-    },
-  }
+function styleHeaderRow(row: ExcelJS.Row, color = PALETTE.orange) {
+  row.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: PALETTE.white }, size: 11 };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: color } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = thinBorder();
+  });
+  row.height = 20;
 }
 
-function normalBorderStyle() {
-  return {
-    border: {
-      top: { style: "thin", color: { rgb: "E5E7EB" } },
-      bottom: { style: "thin", color: { rgb: "E5E7EB" } },
-      left: { style: "thin", color: { rgb: "E5E7EB" } },
-      right: { style: "thin", color: { rgb: "E5E7EB" } },
-    },
-  }
-}
-
-function applyHeaderStyle(sheet: XLSX.WorkSheet, rowNumber: number, color?: string) {
-  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
-
-  for (let col = range.s.c; col <= range.e.c; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: rowNumber - 1, c: col })
-
-    if (sheet[cellAddress]) {
-      sheet[cellAddress].s = headerStyle(color)
-    }
-  }
-}
-
-function applyTableBorders(sheet: XLSX.WorkSheet) {
-  const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
-
-  for (let row = range.s.r; row <= range.e.r; row++) {
-    for (let col = range.s.c; col <= range.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
-
-      if (sheet[cellAddress]) {
-        sheet[cellAddress].s = {
-          ...sheet[cellAddress].s,
-          ...normalBorderStyle(),
-        }
-      }
-    }
-  }
-}
-
-function setColumnWidths(sheet: XLSX.WorkSheet, widths: number[]) {
-  sheet["!cols"] = widths.map((wch) => ({ wch }))
-}
-
-function createSheetFromJson(
-  rows: Record<string, string | number>[],
-  headerColor = COLORS.orange
-) {
-  const sheet = XLSX.utils.json_to_sheet(rows)
-
-  applyHeaderStyle(sheet, 1, headerColor)
-  applyTableBorders(sheet)
-
-  return sheet
-}
-
-function addTitleToSheet(
-  sheet: XLSX.WorkSheet,
+function addTitleBlock(
+  sheet: ExcelJS.Worksheet,
   title: string,
   subtitle: string,
-  totalColumns: number
+  totalCols: number,
 ) {
-  XLSX.utils.sheet_add_aoa(
-    sheet,
-    [
-      [title],
-      [subtitle],
-      [],
-    ],
-    { origin: "A1" }
-  )
+  sheet.mergeCells(1, 1, 1, totalCols);
+  sheet.mergeCells(2, 1, 2, totalCols);
 
-  sheet["!merges"] = [
-    {
-      s: { r: 0, c: 0 },
-      e: { r: 0, c: totalColumns - 1 },
-    },
-    {
-      s: { r: 1, c: 0 },
-      e: { r: 1, c: totalColumns - 1 },
-    },
-  ]
+  const titleCell = sheet.getCell(1, 1);
+  titleCell.value = title;
+  titleCell.font = { bold: true, size: 18, color: { argb: PALETTE.white } };
+  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.dark } };
+  titleCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  sheet["A1"].s = titleStyle()
-  sheet["A2"].s = subtitleStyle()
+  const subtitleCell = sheet.getCell(2, 1);
+  subtitleCell.value = subtitle;
+  subtitleCell.font = { bold: true, size: 11, color: { argb: PALETTE.textDark } };
+  subtitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.lightGray } };
+  subtitleCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  sheet["!rows"] = [{ hpt: 28 }, { hpt: 22 }]
+  sheet.getRow(1).height = 30;
+  sheet.getRow(2).height = 22;
 }
 
-function createExecutiveSummarySheet(data: {
-  ingresosBrutos: number
-  comisionFixNow: number
-  pagoProfesionales: number
-  pedidosCompletados: number
-  montoPromedioPorPedido: number
-  porcentajeComision: number
-  fechaGeneracion: string
-}) {
-  const rows = [
-    ["FixNow — Reporte Financiero"],
-    ["Payments App · Resumen ejecutivo generado desde Analytics"],
-    [],
-    ["Indicador", "Valor", "Descripción"],
-    [
-      "Volumen total de transacciones",
-      data.ingresosBrutos,
-      "Monto total abonado por clientes",
-    ],
-    [
-      "Ingresos FixNow",
-      data.comisionFixNow,
-      "Comisión neta estimada de la plataforma",
-    ],
-    [
-      "Pago a profesionales",
-      data.pagoProfesionales,
-      "Ingresos brutos menos comisión FixNow",
-    ],
-    [
-      "Pedidos completados",
-      data.pedidosCompletados,
-      "Cantidad de trabajos considerados",
-    ],
-    [
-      "Monto promedio por pedido",
-      data.montoPromedioPorPedido,
-      "Promedio abonado por cada trabajo completado",
-    ],
-    [
-      "Porcentaje de comisión",
-      data.porcentajeComision,
-      "Relación entre comisión FixNow e ingresos brutos",
-    ],
-    ["Fecha de generación", data.fechaGeneracion, "Fecha del reporte"],
-  ]
+/** Dibuja una tarjeta KPI ocupando un rango de 3 columnas x 3 filas */
+function drawKpiCard(
+  sheet: ExcelJS.Worksheet,
+  startRow: number,
+  startCol: number,
+  label: string,
+  value: string | number,
+  format: "currency" | "percent" | "number" | "text",
+  accentColor: string,
+) {
+  const endRow = startRow + 2;
+  const endCol = startCol + 2;
 
-  const sheet = XLSX.utils.aoa_to_sheet(rows)
+  sheet.mergeCells(startRow, startCol, startRow, endCol);
+  sheet.mergeCells(startRow + 1, startCol, startRow + 1, endCol);
 
-  sheet["!merges"] = [
-    {
-      s: { r: 0, c: 0 },
-      e: { r: 0, c: 2 },
-    },
-    {
-      s: { r: 1, c: 0 },
-      e: { r: 1, c: 2 },
-    },
-  ]
+  const labelCell = sheet.getCell(startRow, startCol);
+  labelCell.value = label.toUpperCase();
+  labelCell.font = { bold: true, size: 9, color: { argb: PALETTE.white } };
+  labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accentColor } };
+  labelCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  sheet["A1"].s = titleStyle()
-  sheet["A2"].s = subtitleStyle()
+  const valueCell = sheet.getCell(startRow + 1, startCol);
+  valueCell.value = value;
+  valueCell.font = { bold: true, size: 16, color: { argb: PALETTE.textDark } };
+  valueCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PALETTE.white } };
+  valueCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  applyHeaderStyle(sheet, 4, COLORS.orange)
-  applyTableBorders(sheet)
+  if (format === "currency") valueCell.numFmt = '"$"#,##0';
+  if (format === "percent") valueCell.numFmt = "0.0%";
+  if (format === "number") valueCell.numFmt = "#,##0";
 
-  const moneyRows = [5, 6, 7, 9]
-  for (const row of moneyRows) {
-    const cell = `B${row}`
-    if (sheet[cell]) sheet[cell].s = { ...sheet[cell].s, ...currencyStyle() }
+  for (let r = startRow; r <= startRow + 1; r++) {
+    for (let c = startCol; c <= endCol; c++) {
+      sheet.getCell(r, c).border = thinBorder(accentColor);
+    }
   }
-
-  if (sheet["B10"]) {
-    sheet["B10"].s = { ...sheet["B10"].s, ...percentStyle() }
-  }
-
-  setColumnWidths(sheet, [34, 22, 52])
-
-  sheet["!rows"] = [{ hpt: 30 }, { hpt: 24 }]
-
-  return sheet
 }
 
+// ---------------------------------------------------------------------------
+// Componente
+// ---------------------------------------------------------------------------
 export function ExportFinancialExcelButton() {
+  const [loading, setLoading] = useState(false);
+
   async function handleExport() {
-    const generatedAt = new Date()
+    setLoading(true);
+    try {
+      const generatedAt = new Date();
+      const fechaGeneracion = generatedAt.toLocaleString("es-AR");
 
-    const [kpisRes, trabajosRes, metricasRes] = await Promise.all([
-      fetch("/api/kpis"),
-      fetch("/api/trabajos"),
-      fetch("/api/metricas"),
-    ])
+      const [kpisRes, trabajosRes, metricasRes] = await Promise.all([
+        fetch("/api/kpis"),
+        fetch("/api/trabajos"),
+        fetch("/api/metricas"),
+      ]);
 
-    const kpis = await kpisRes.json()
-    const trabajosData = await trabajosRes.json()
-    const metricasData = await metricasRes.json()
+      const kpis = await kpisRes.json();
+      const trabajosData = await trabajosRes.json();
+      const metricasData = await metricasRes.json();
 
-    const trabajos: Trabajo[] = getArray(trabajosData, "trabajos")
-    const metricas: Metrica[] = getArray(metricasData, "metricas")
+      const trabajos: Trabajo[] = getArray(trabajosData, "trabajos");
+      const metricas: Metrica[] = getArray(metricasData, "metricas");
 
-    const trabajosCompletados = trabajos.filter((trabajo) => {
-      const estado = getEstado(trabajo)
+      const trabajosCompletados = trabajos.filter((t) =>
+        ["COMPLETADO", "COMPLETED", "PAID", "PAGADO"].includes(getEstado(t)),
+      );
 
-      return (
-        estado === "COMPLETADO" ||
-        estado === "COMPLETED" ||
-        estado === "PAID" ||
-        estado === "PAGADO"
-      )
-    })
+      // ---- KPIs principales ----
+      const ingresosBrutos =
+        toNumber(kpis.volumenTransacciones) ||
+        trabajosCompletados.reduce((acc, t) => acc + getMonto(t), 0);
 
-    const ingresosBrutos =
-      toNumber(kpis.volumenTransacciones) ||
-      trabajosCompletados.reduce(
-        (total, trabajo) => total + getMonto(trabajo),
-        0
-      )
+      const comisionFixNow =
+        toNumber(kpis.ingresosNetos) ||
+        trabajosCompletados.reduce((acc, t) => acc + getComision(t), 0);
 
-    const comisionFixNow =
-      toNumber(kpis.ingresosNetos) ||
-      trabajosCompletados.reduce(
-        (total, trabajo) => total + getComision(trabajo),
-        0
-      )
+      const pagoProfesionales = ingresosBrutos - comisionFixNow;
+      const pedidosCompletados = toNumber(kpis.pedidosCompletados) || trabajosCompletados.length;
+      const montoPromedioPorPedido = pedidosCompletados > 0 ? ingresosBrutos / pedidosCompletados : 0;
+      const porcentajeComision = ingresosBrutos > 0 ? comisionFixNow / ingresosBrutos : 0;
 
-    const pagoProfesionales = ingresosBrutos - comisionFixNow
+      // ---- Ingresos por categoría (dinámico, top 6) ----
+      const categoriasUnicas = Array.from(
+        new Set(trabajosCompletados.map((t) => getCategoria(t))),
+      );
 
-    const pedidosCompletados =
-      toNumber(kpis.pedidosCompletados) || trabajosCompletados.length
+      const ingresosPorCategoria = categoriasUnicas
+        .map((categoria) => {
+          const trabajosCategoria = trabajosCompletados.filter(
+            (t) => getCategoria(t) === categoria,
+          );
+          const bruto = trabajosCategoria.reduce((acc, t) => acc + getMonto(t), 0);
+          const comision = trabajosCategoria.reduce((acc, t) => acc + getComision(t), 0);
 
-    const montoPromedioPorPedido =
-      pedidosCompletados > 0 ? ingresosBrutos / pedidosCompletados : 0
+          return {
+            categoria,
+            trabajos: trabajosCategoria.length,
+            bruto,
+            comision,
+            profesionales: bruto - comision,
+            promedio: trabajosCategoria.length > 0 ? bruto / trabajosCategoria.length : 0,
+            participacion: ingresosBrutos > 0 ? bruto / ingresosBrutos : 0,
+          };
+        })
+        .sort((a, b) => b.bruto - a.bruto)
+        .slice(0, 6);
 
-    const porcentajeComision =
-      ingresosBrutos > 0 ? comisionFixNow / ingresosBrutos : 0
-
-    const fechaGeneracion = generatedAt.toLocaleString("es-AR")
-
-    const categorias = ["Plomería", "Gas", "Electricidad"]
-
-    const ingresosPorCategoria = categorias.map((categoria) => {
-      const trabajosCategoria = trabajosCompletados.filter(
-        (trabajo) => getCategoria(trabajo) === categoria
-      )
-
-      const brutoCategoria = trabajosCategoria.reduce(
-        (total, trabajo) => total + getMonto(trabajo),
-        0
-      )
-
-      const comisionCategoria = trabajosCategoria.reduce(
-        (total, trabajo) => total + getComision(trabajo),
-        0
-      )
-
-      return {
-        Categoría: categoria,
-        "Trabajos completados": trabajosCategoria.length,
-        "Ingresos brutos": brutoCategoria,
-        "Comisión FixNow": comisionCategoria,
-        "Pago a profesionales": brutoCategoria - comisionCategoria,
-        "Monto promedio por pedido":
-          trabajosCategoria.length > 0
-            ? brutoCategoria / trabajosCategoria.length
-            : 0,
-        "Porcentaje del total":
-          ingresosBrutos > 0 ? brutoCategoria / ingresosBrutos : 0,
-      }
-    })
-
-    const estadosBase = ["Pagados", "Pendientes", "En proceso", "Fallidos"]
-
-    const estadosPago = estadosBase.map((estado) => {
-      const cantidad = trabajos.filter(
-        (trabajo) => getPaymentStatus(trabajo) === estado
-      ).length
-
-      const porcentaje = trabajos.length > 0 ? cantidad / trabajos.length : 0
-
-      const observacion =
-        estado === "Pagados"
-          ? "Operaciones acreditadas"
-          : estado === "Pendientes"
-            ? "Operaciones esperando confirmación"
+      // ---- Estados de pago ----
+      const estadosBase = ["Pagados", "En proceso", "Pendientes", "Fallidos"] as const;
+      const estadosPago = estadosBase.map((estado) => {
+        const cantidad = trabajos.filter((t) => getPaymentStatus(t) === estado).length;
+        const porcentaje = trabajos.length > 0 ? cantidad / trabajos.length : 0;
+        const observacion =
+          estado === "Pagados"
+            ? "Operaciones acreditadas"
             : estado === "En proceso"
               ? "Operaciones en procesamiento"
-              : "Operaciones que requieren revisión"
+              : estado === "Pendientes"
+                ? "Operaciones esperando confirmación"
+                : "Operaciones que requieren revisión";
+        return { estado, cantidad, porcentaje, observacion };
+      });
 
-      return {
-        Estado: estado,
-        Cantidad: cantidad,
-        Porcentaje: porcentaje,
-        Observación: observacion,
-      }
-    })
+      // ---- Evolución mensual ----
+      const evolucionMensual = metricas.map((m) => ({
+        periodo: `${m.mes}/${m.anio}`,
+        categoria: m.categoria || "General",
+        completados: toNumber(m.trabajosCompletados),
+        cancelados: toNumber(m.trabajosCancelados),
+        clientesNuevos: toNumber(m.clientesNuevos),
+        ingresos: toNumber(m.ingresosTotal),
+        ticketPromedio: toNumber(m.ticketPromedio),
+      }));
 
-    const evolucionMensual = metricas.map((metrica) => ({
-      Mes: `${metrica.mes}/${metrica.anio}`,
-      Categoría: metrica.categoria || "General",
-      "Trabajos completados": toNumber(metrica.trabajosCompletados),
-      "Trabajos cancelados": toNumber(metrica.trabajosCancelados),
-      "Clientes nuevos": toNumber(metrica.clientesNuevos),
-      "Ingresos brutos": toNumber(metrica.ingresosTotal),
-      "Monto promedio por pedido": toNumber(metrica.ticketPromedio),
-    }))
+      // ---- Detalle de transacciones ----
+      const detalleTransacciones = trabajos.map((t) => {
+        const monto = getMonto(t);
+        const comision = getComision(t);
+        const estadoPago = getPaymentStatus(t);
+        const esPagado = estadoPago === "Pagados";
 
-    const detalleTransacciones = trabajosCompletados.map((trabajo) => {
-      const monto = getMonto(trabajo)
-      const comision = getComision(trabajo)
+        return {
+          id: t.id || t.jobId || t.job_id || "-",
+          fecha: t.requested_date || t.fechaCreacion || "-",
+          categoria: getCategoria(t),
+          urgencia: t.urgency || t.urgencia || "SCHEDULED",
+          estadoOperativo: getEstado(t) || "-",
+          estadoPago,
+          monto,
+          comisionReal: esPagado ? comision : 0,
+          profesionalReal: esPagado ? monto - comision : 0,
+          clienteId: t.clienteId || t.clientId || t.client_id || "-",
+          profesionalId: t.profesionalId || t.professionalId || t.professional_id || "-",
+          motivoCancelacion: t.cancellation_reason || t.motivoCancelacion || "N/A",
+        };
+      });
 
-      return {
-        "ID trabajo": trabajo.id || trabajo.jobId || trabajo.job_id || "-",
-        Fecha: getFecha(trabajo),
-        Categoría: getCategoria(trabajo),
-        Estado: getEstado(trabajo) || "-",
-        "Monto total": monto,
-        "Comisión FixNow": comision,
-        "Monto profesional": monto - comision,
-        "Cliente ID": trabajo.clienteId || trabajo.clientId || trabajo.client_id || "-",
-        "Profesional ID":
-          trabajo.profesionalId ||
-          trabajo.professionalId ||
-          trabajo.professional_id ||
-          "-",
-      }
-    })
+      // -----------------------------------------------------------------
+      // Gráficos (Chart.js -> PNG)
+      // -----------------------------------------------------------------
+      const chartColors = [PALETTE.orange, PALETTE.green, PALETTE.blue, PALETTE.gold, "FF9CA3AF", "FF6B7280"];
+      const hex = (argb: string) => `#${argb.slice(2)}`;
 
-    const datosParaGraficos = [
-      {
-        Gráfico: "Ingresos por categoría",
-        Categoría: "Plomería",
-        Valor:
-          ingresosPorCategoria.find((item) => item.Categoría === "Plomería")?.[
-            "Ingresos brutos"
-          ] || 0,
-      },
-      {
-        Gráfico: "Ingresos por categoría",
-        Categoría: "Gas",
-        Valor:
-          ingresosPorCategoria.find((item) => item.Categoría === "Gas")?.[
-            "Ingresos brutos"
-          ] || 0,
-      },
-      {
-        Gráfico: "Ingresos por categoría",
-        Categoría: "Electricidad",
-        Valor:
-          ingresosPorCategoria.find(
-            (item) => item.Categoría === "Electricidad"
-          )?.["Ingresos brutos"] || 0,
-      },
-      ...estadosPago.map((estado) => ({
-        Gráfico: "Estados de pago",
-        Categoría: estado.Estado,
-        Valor: estado.Cantidad,
-      })),
-    ]
+      const categoriaChartPNG = await renderChartPNG({
+        type: "bar",
+        data: {
+          labels: ingresosPorCategoria.map((c) => c.categoria),
+          datasets: [
+            {
+              label: "Ingresos brutos",
+              data: ingresosPorCategoria.map((c) => c.bruto),
+              backgroundColor: ingresosPorCategoria.map((_, i) => hex(chartColors[i % chartColors.length])),
+              borderRadius: 4,
+            },
+          ],
+        },
+        options: {
+          plugins: { legend: { display: false }, title: { display: true, text: "Ingresos por categoría" } },
+          scales: { y: { ticks: { callback: (v: any) => `$${Number(v).toLocaleString("es-AR")}` } } },
+        },
+      });
 
-    const indicadoresFinancieros = [
-      {
-        Métrica: "Volumen total de transacciones",
-        Valor: ingresosBrutos,
-        Observación: "Monto total abonado por clientes",
-      },
-      {
-        Métrica: "Ingresos brutos",
-        Valor: ingresosBrutos,
-        Observación: "Monto total de operaciones completadas",
-      },
-      {
-        Métrica: "Comisión neta FixNow",
-        Valor: comisionFixNow,
-        Observación: "Ingreso estimado de la plataforma",
-      },
-      {
-        Métrica: "Monto destinado a profesionales",
-        Valor: pagoProfesionales,
-        Observación: "Ingresos brutos menos comisión",
-      },
-      {
-        Métrica: "Trabajos completados",
-        Valor: pedidosCompletados,
-        Observación: "Cantidad de trabajos finalizados",
-      },
-      {
-        Métrica: "Monto promedio por pedido",
-        Valor: montoPromedioPorPedido,
-        Observación: "Promedio abonado por trabajo",
-      },
-      {
-        Métrica: "Porcentaje de comisión",
-        Valor: porcentajeComision,
-        Observación: "Relación entre comisión e ingresos brutos",
-      },
-      {
-        Métrica: "Fecha de generación",
-        Valor: fechaGeneracion,
-        Observación: "Reporte generado desde Analytics App",
-      },
-    ]
+      const estadosChartPNG = await renderChartPNG({
+        type: "doughnut",
+        data: {
+          labels: estadosPago.map((e) => e.estado),
+          datasets: [
+            {
+              data: estadosPago.map((e) => e.cantidad),
+              backgroundColor: estadosPago.map((e) => hex(ESTADO_FILL[e.estado])),
+            },
+          ],
+        },
+        options: {
+          plugins: { legend: { position: "bottom" }, title: { display: true, text: "Distribución de estados de pago" } },
+        },
+      });
 
-    const workbook = XLSX.utils.book_new()
+      const evolucionChartPNG = await renderChartPNG(
+        {
+          type: "line",
+          data: {
+            labels: evolucionMensual.map((m) => m.periodo),
+            datasets: [
+              {
+                label: "Ingresos",
+                data: evolucionMensual.map((m) => m.ingresos),
+                borderColor: hex(PALETTE.orange),
+                backgroundColor: hex(PALETTE.orange) + "33",
+                fill: true,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            plugins: { legend: { display: false }, title: { display: true, text: "Evolución mensual de ingresos" } },
+            scales: { y: { ticks: { callback: (v: any) => `$${Number(v).toLocaleString("es-AR")}` } } },
+          },
+        },
+        1080,
+        300,
+      );
 
-    const resumenEjecutivoSheet = createExecutiveSummarySheet({
-      ingresosBrutos,
-      comisionFixNow,
-      pagoProfesionales,
-      pedidosCompletados,
-      montoPromedioPorPedido,
-      porcentajeComision,
-      fechaGeneracion,
-    })
+      // -----------------------------------------------------------------
+      // Workbook
+      // -----------------------------------------------------------------
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "FixNow Analytics";
+      workbook.created = generatedAt;
 
-    const indicadoresSheet = createSheetFromJson(
-      indicadoresFinancieros,
-      COLORS.orange
-    )
+      // ================= Hoja 1: Resumen Ejecutivo =================
+      const resumen = workbook.addWorksheet("Resumen Ejecutivo", {
+        views: [{ showGridLines: false }],
+      });
+      for (let i = 1; i <= 9; i++) resumen.getColumn(i).width = 14;
 
-    const categoriaSheet = createSheetFromJson(
-      ingresosPorCategoria,
-      COLORS.green
-    )
+      addTitleBlock(
+        resumen,
+        "FixNow — Reporte Financiero",
+        `Payments App · Resumen ejecutivo generado desde Analytics · ${fechaGeneracion}`,
+        9,
+      );
 
-    const estadosSheet = createSheetFromJson(estadosPago, COLORS.blue)
+      drawKpiCard(resumen, 4, 1, "Volumen total", ingresosBrutos, "currency", PALETTE.dark);
+      drawKpiCard(resumen, 4, 4, "Comisión FixNow", comisionFixNow, "currency", PALETTE.orange);
+      drawKpiCard(resumen, 4, 7, "Pago a profesionales", pagoProfesionales, "currency", PALETTE.green);
+      drawKpiCard(resumen, 7, 1, "Pedidos completados", pedidosCompletados, "number", PALETTE.blue);
+      drawKpiCard(resumen, 7, 4, "Ticket promedio", montoPromedioPorPedido, "currency", PALETTE.gold);
+      drawKpiCard(resumen, 7, 7, "% comisión / ingresos", porcentajeComision, "percent", PALETTE.dark);
 
-    const mensualSheet = createSheetFromJson(evolucionMensual, COLORS.gold)
+      resumen.getRow(10).height = 10;
 
-    const detalleSheet = createSheetFromJson(
-      detalleTransacciones,
-      COLORS.dark
-    )
+      const estadosImg = workbook.addImage({ base64: estadosChartPNG, extension: "png" });
+      resumen.addImage(estadosImg, { tl: { col: 0, row: 10 }, ext: { width: 380, height: 220 } });
 
-    const graficosSheet = createSheetFromJson(datosParaGraficos, COLORS.orange)
+      const categoriaImg = workbook.addImage({ base64: categoriaChartPNG, extension: "png" });
+      resumen.addImage(categoriaImg, { tl: { col: 4.3, row: 10 }, ext: { width: 380, height: 220 } });
 
-    setColumnWidths(indicadoresSheet, [34, 22, 52])
-    setColumnWidths(categoriaSheet, [22, 24, 20, 20, 24, 28, 22])
-    setColumnWidths(estadosSheet, [18, 14, 16, 36])
-    setColumnWidths(mensualSheet, [16, 18, 24, 24, 20, 20, 28])
-    setColumnWidths(detalleSheet, [30, 24, 18, 16, 18, 18, 22, 32, 32])
-    setColumnWidths(graficosSheet, [28, 22, 18])
+      const evolucionImg = workbook.addImage({ base64: evolucionChartPNG, extension: "png" });
+      resumen.addImage(evolucionImg, { tl: { col: 0, row: 26 }, ext: { width: 790, height: 220 } });
 
-    for (const sheet of [
-      categoriaSheet,
-      mensualSheet,
-      detalleSheet,
-      indicadoresSheet,
-    ]) {
-      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
+      resumen.getCell(43, 1).value =
+        "Nota: los montos provienen de Payments App. El detalle completo de transacciones está en la hoja 'Transacciones'.";
+      resumen.getCell(43, 1).font = { italic: true, size: 9, color: { argb: "FF6B7280" } };
+      resumen.mergeCells(43, 1, 43, 9);
 
-      for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        for (let col = range.s.c; col <= range.e.c; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
-          const cell = sheet[cellAddress]
+      // ================= Hoja 2: Ingresos por Categoría =================
+      const catSheet = workbook.addWorksheet("Ingresos por Categoría");
+      catSheet.columns = [
+        { header: "Categoría", key: "categoria", width: 24 },
+        { header: "Trabajos completados", key: "trabajos", width: 20 },
+        { header: "Ingresos brutos", key: "bruto", width: 18 },
+        { header: "Comisión FixNow", key: "comision", width: 18 },
+        { header: "Pago a profesionales", key: "profesionales", width: 20 },
+        { header: "Ticket promedio", key: "promedio", width: 18 },
+        { header: "% del total", key: "participacion", width: 14 },
+      ];
+      styleHeaderRow(catSheet.getRow(1), PALETTE.green);
+      ingresosPorCategoria.forEach((c) => catSheet.addRow(c));
+      catSheet.getColumn("bruto").numFmt = '"$"#,##0';
+      catSheet.getColumn("comision").numFmt = '"$"#,##0';
+      catSheet.getColumn("profesionales").numFmt = '"$"#,##0';
+      catSheet.getColumn("promedio").numFmt = '"$"#,##0';
+      catSheet.getColumn("participacion").numFmt = "0.0%";
+      catSheet.views = [{ state: "frozen", ySplit: 1 }];
+      catSheet.autoFilter = { from: "A1", to: "G1" };
 
-          if (!cell) continue
+      // ================= Hoja 3: Estados de Pago =================
+      const estadosSheet = workbook.addWorksheet("Estados de Pago");
+      estadosSheet.columns = [
+        { header: "Estado", key: "estado", width: 18 },
+        { header: "Cantidad", key: "cantidad", width: 14 },
+        { header: "% del total", key: "porcentaje", width: 14 },
+        { header: "Observación", key: "observacion", width: 38 },
+      ];
+      styleHeaderRow(estadosSheet.getRow(1), PALETTE.blue);
+      estadosPago.forEach((e) => {
+        const row = estadosSheet.addRow(e);
+        row.getCell(1).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: ESTADO_FILL[e.estado] },
+        };
+        row.getCell(1).font = { bold: true, color: { argb: PALETTE.white } };
+      });
+      estadosSheet.getColumn("porcentaje").numFmt = "0.0%";
 
-          const headerAddress = XLSX.utils.encode_cell({ r: 0, c: col })
-          const header = String(sheet[headerAddress]?.v || "").toLowerCase()
+      // ================= Hoja 4: Evolución Mensual =================
+      const mensualSheet = workbook.addWorksheet("Evolución Mensual");
+      mensualSheet.columns = [
+        { header: "Período", key: "periodo", width: 14 },
+        { header: "Categoría", key: "categoria", width: 18 },
+        { header: "Completados", key: "completados", width: 16 },
+        { header: "Cancelados", key: "cancelados", width: 14 },
+        { header: "Clientes nuevos", key: "clientesNuevos", width: 16 },
+        { header: "Ingresos", key: "ingresos", width: 18 },
+        { header: "Ticket promedio", key: "ticketPromedio", width: 18 },
+      ];
+      styleHeaderRow(mensualSheet.getRow(1), PALETTE.gold);
+      evolucionMensual.forEach((m) => mensualSheet.addRow(m));
+      mensualSheet.getColumn("ingresos").numFmt = '"$"#,##0';
+      mensualSheet.getColumn("ticketPromedio").numFmt = '"$"#,##0';
+      mensualSheet.views = [{ state: "frozen", ySplit: 1 }];
 
-          if (
-            header.includes("monto") ||
-            header.includes("ingresos") ||
-            header.includes("comisión") ||
-            header.includes("pago") ||
-            header.includes("valor")
-          ) {
-            cell.s = {
-              ...cell.s,
-              ...currencyStyle(),
-            }
-          }
+      // ================= Hoja 5: Transacciones =================
+      const detalleSheet = workbook.addWorksheet("Transacciones");
+      detalleSheet.columns = [
+        { header: "ID Trabajo", key: "id", width: 28 },
+        { header: "Fecha", key: "fecha", width: 14 },
+        { header: "Categoría", key: "categoria", width: 18 },
+        { header: "Urgencia", key: "urgencia", width: 14 },
+        { header: "Estado Operativo", key: "estadoOperativo", width: 18 },
+        { header: "Estado Pago", key: "estadoPago", width: 14 },
+        { header: "Monto cotizado", key: "monto", width: 16 },
+        { header: "Comisión FixNow (real)", key: "comisionReal", width: 20 },
+        { header: "Pago profesional (real)", key: "profesionalReal", width: 20 },
+        { header: "Cliente ID", key: "clienteId", width: 22 },
+        { header: "Profesional ID", key: "profesionalId", width: 22 },
+        { header: "Motivo cancelación", key: "motivoCancelacion", width: 30 },
+      ];
+      styleHeaderRow(detalleSheet.getRow(1), PALETTE.dark);
+      detalleTransacciones.forEach((t) => {
+        const row = detalleSheet.addRow(t);
+        const estadoCell = row.getCell(6);
+        estadoCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: ESTADO_FILL[t.estadoPago] },
+        };
+        estadoCell.font = { bold: true, color: { argb: PALETTE.white } };
+        estadoCell.alignment = { horizontal: "center" };
+      });
+      detalleSheet.getColumn("monto").numFmt = '"$"#,##0';
+      detalleSheet.getColumn("comisionReal").numFmt = '"$"#,##0';
+      detalleSheet.getColumn("profesionalReal").numFmt = '"$"#,##0';
+      detalleSheet.views = [{ state: "frozen", ySplit: 1 }];
+      detalleSheet.autoFilter = { from: "A1", to: "L1" };
 
-          if (header.includes("porcentaje")) {
-            cell.s = {
-              ...cell.s,
-              ...percentStyle(),
-            }
-          }
-        }
-      }
+      // -----------------------------------------------------------------
+      // Descarga
+      // -----------------------------------------------------------------
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `reporte-financiero-fixnow-${generatedAt.toISOString().slice(0, 10)}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setLoading(false);
     }
-
-    for (const sheet of [estadosSheet]) {
-      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1")
-
-      for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: row, c: 2 })
-        const cell = sheet[cellAddress]
-
-        if (cell) {
-          cell.s = {
-            ...cell.s,
-            ...percentStyle(),
-          }
-        }
-      }
-    }
-
-    addTitleToSheet(
-      indicadoresSheet,
-      "Indicadores Financieros",
-      "Métricas principales de ingresos, comisiones y pagos",
-      3
-    )
-
-    addTitleToSheet(
-      categoriaSheet,
-      "Ingresos por Categoría",
-      "Distribución de ingresos por tipo de servicio",
-      7
-    )
-
-    addTitleToSheet(
-      estadosSheet,
-      "Estados de Pago",
-      "Seguimiento de operaciones pagadas, pendientes, en proceso y fallidas",
-      4
-    )
-
-    addTitleToSheet(
-      mensualSheet,
-      "Evolución Mensual",
-      "Comportamiento mensual de trabajos, clientes e ingresos",
-      7
-    )
-
-    addTitleToSheet(
-      detalleSheet,
-      "Detalle de Transacciones",
-      "Listado administrativo de trabajos completados y pagos asociados",
-      9
-    )
-
-    addTitleToSheet(
-      graficosSheet,
-      "Datos para Gráficos",
-      "Tablas preparadas para generar gráficos en Excel",
-      3
-    )
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      resumenEjecutivoSheet,
-      "Resumen Ejecutivo"
-    )
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      indicadoresSheet,
-      "Indicadores"
-    )
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      categoriaSheet,
-      "Ingresos Categoria"
-    )
-
-    XLSX.utils.book_append_sheet(workbook, estadosSheet, "Estados Pago")
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      mensualSheet,
-      "Evolucion Mensual"
-    )
-
-    XLSX.utils.book_append_sheet(workbook, detalleSheet, "Transacciones")
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      graficosSheet,
-      "Datos Graficos"
-    )
-
-    XLSX.writeFile(
-      workbook,
-      `reporte-financiero-fixnow-${generatedAt
-        .toISOString()
-        .slice(0, 10)}.xlsx`
-    )
   }
 
   return (
-    <Button onClick={handleExport} variant="outline" className="gap-2">
-      <Download className="h-4 w-4" />
-      Descargar Reporte Financiero
+    <Button onClick={handleExport} variant="outline" className="gap-2" disabled={loading}>
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+      {loading ? "Generando reporte..." : "Descargar Reporte Financiero"}
     </Button>
-  )
+  );
 }
