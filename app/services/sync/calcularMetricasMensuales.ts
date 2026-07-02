@@ -24,9 +24,10 @@ export async function calcularMetricasMensuales() {
     const anio = fecha.getFullYear()
     const mes = fecha.getMonth() + 1
 
-    // Global (null) y por categoría
-    for (const cat of [null, t.categoria]) {
-      const key = `{${anio}-${mes}-${cat ?? 'null'}`
+    const categories = t.categoria == null ? [null] : [null, t.categoria]
+
+    for (const cat of categories) {
+      const key = `${anio}-${mes}-${cat ?? 'null'}`
       if (!agrupado[key]) {
         agrupado[key] = { anio, mes, categoria: cat, completados: 0, cancelados: 0, ingresos: 0, montos: [] }
       }
@@ -42,38 +43,89 @@ export async function calcularMetricasMensuales() {
     }
   }
 
-  const operaciones = Object.values(agrupado).map((m) => {
+  const operaciones: any[] = []
+
+  for (const m of Object.values(agrupado)) {
     const ticketPromedio = m.montos.length
       ? m.montos.reduce((a, b) => a + b, 0) / m.montos.length
       : 0
 
-    return prisma.metricaMensual.upsert({
-      where: {
-        anio_mes_categoria: {
+    if (m.categoria == null) {
+      const existing = await prisma.metricaMensual.findFirst({
+        where: {
           anio: m.anio,
           mes: m.mes,
-          categoria: m.categoria as any,
+          categoria: null,
         }
-      },
-      update: {
-        trabajosCompletados: m.completados,
-        trabajosCancelados: m.cancelados,
-        ingresosTotal: m.ingresos,
-        ticketPromedio,
-      },
-      create: {
-        anio: m.anio,
-        mes: m.mes,
-        categoria: m.categoria as any,
-        trabajosCompletados: m.completados,
-        trabajosCancelados: m.cancelados,
-        ingresosTotal: m.ingresos,
-        ticketPromedio,
-        clientesNuevos: 0, // Lautaro puede calcularlo desde riderData si tiene fecha de registro
-      }
-    })
-  })
+      })
 
-  await prisma.$transaction(operaciones)
+      if (existing) {
+        operaciones.push(
+          prisma.metricaMensual.update({
+            where: { id: existing.id },
+            data: {
+              trabajosCompletados: m.completados,
+              trabajosCancelados: m.cancelados,
+              ingresosTotal: m.ingresos,
+              ticketPromedio,
+            }
+          })
+        )
+      } else {
+        operaciones.push(
+          prisma.metricaMensual.create({
+            data: {
+              anio: m.anio,
+              mes: m.mes,
+              categoria: null,
+              trabajosCompletados: m.completados,
+              trabajosCancelados: m.cancelados,
+              ingresosTotal: m.ingresos,
+              ticketPromedio,
+              clientesNuevos: 0, // Lautaro puede calcularlo desde riderData si tiene fecha de registro
+            }
+          })
+        )
+      }
+    } else {
+      operaciones.push(
+        prisma.metricaMensual.upsert({
+          where: {
+            anio_mes_categoria: {
+              anio: m.anio,
+              mes: m.mes,
+              categoria: m.categoria as any,
+            }
+          },
+          update: {
+            trabajosCompletados: m.completados,
+            trabajosCancelados: m.cancelados,
+            ingresosTotal: m.ingresos,
+            ticketPromedio,
+          },
+          create: {
+            anio: m.anio,
+            mes: m.mes,
+            categoria: m.categoria as any,
+            trabajosCompletados: m.completados,
+            trabajosCancelados: m.cancelados,
+            ingresosTotal: m.ingresos,
+            ticketPromedio,
+            clientesNuevos: 0, // Lautaro puede calcularlo desde riderData si tiene fecha de registro
+          }
+        })
+      )
+    }
+  }
+
+  if (operaciones.length > 0) {
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < operaciones.length; i += BATCH_SIZE) {
+      const batch = operaciones.slice(i, i + BATCH_SIZE);
+      await prisma.$transaction(batch, {
+        timeout: 10000,
+      });
+    }
+  }
   console.log(`${operaciones.length} métricas mensuales calculadas.`)
 }

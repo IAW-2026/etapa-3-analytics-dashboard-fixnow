@@ -20,6 +20,7 @@ import { AnalisisComparativaChart } from "@/components/analytics/AnalisisCompara
 import { AnalisisCancelaciones } from "@/components/analytics/AnalisisCancelaciones";
 import { AnalisisInsightsBanner } from "@/components/analytics/AnalisisInsightsBanner";
 import { PaymentStatusChart } from "@/components/analytics/PaymentStatusChart";
+import { sincronizarDatos } from "@/app/dashboard/actions";
 export type Period = "30d" | "90d" | "6m" | "1y";
 
 interface AnalyticsDashboardProps {
@@ -64,21 +65,16 @@ export function AnalyticsDashboard({ currentView }: AnalyticsDashboardProps) {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try{
-      const response = await fetch("/api/cron/sync", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          // "Authorizarion": `Bearer ${process.env.CRON_SECRET}`
-        }
-      });
+      const resultado = await sincronizarDatos(); 
 
-      if(!response.ok){
-        throw new Error("Error al sincronizar las bases de datos");
+      if(!resultado.success){
+        throw new Error(resultado.error || "Error al sincronizar las bases de datos");
       }
 
       window.location.reload();
     } catch(error){
       console.error("Hubo un error al actualizar:", error);
+      alert("Hubo un error al actualizar.");
     } finally{
       setIsRefreshing(false)
     }
