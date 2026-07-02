@@ -859,7 +859,7 @@ export async function POST(req: NextRequest) {
       loops++;
 
       const result: any = await ai.models.generateContent({
-        model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+        model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite",
         contents: contents as any,
         config: {
           systemInstruction,
@@ -940,19 +940,56 @@ export async function POST(req: NextRequest) {
       },
       { status: 500 },
     );
-  } catch (error: any) {
+   } catch (error: any) {
     console.error("Error en /api/chat:", error);
 
-    const details =
+    const rawError =
       error?.message ||
-      error?.errorDetails?.[0]?.reason ||
-      error?.errorDetails?.[1]?.message ||
+      error?.status ||
+      error?.name ||
+      JSON.stringify(error, null, 2) ||
       String(error);
+
+    const errorText = String(rawError).toLowerCase();
+
+    if (
+      errorText.includes("429") ||
+      errorText.includes("quota") ||
+      errorText.includes("resource_exhausted") ||
+      errorText.includes("prepayment credits") ||
+      errorText.includes("rate limit") ||
+      errorText.includes("exceeded your current quota")
+    ) {
+      return NextResponse.json(
+        {
+          error: "Alcanzaste el límite de Gemini.",
+          details:
+            "Alcanzaste el límite de consultas de Gemini. Probá más tarde o usá otra API key/modelo con más cuota.",
+        },
+        { status: 429 },
+      );
+    }
+
+    if (
+      errorText.includes("api key not valid") ||
+      errorText.includes("api_key_invalid") ||
+      errorText.includes("invalid api key")
+    ) {
+      return NextResponse.json(
+        {
+          error: "API key inválida.",
+          details:
+            "La API key de Gemini no es válida. Revisá el .env o generá una nueva key en Google AI Studio.",
+        },
+        { status: 401 },
+      );
+    }
 
     return NextResponse.json(
       {
         error: "Error interno del asistente de Analytics",
-        details,
+        details:
+          "No pude consultar el asistente en este momento. Revisá la terminal para ver el error real.",
       },
       { status: 500 },
     );

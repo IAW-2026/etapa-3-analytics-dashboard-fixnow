@@ -1,163 +1,158 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import useSWR from "swr"
-import * as XLSX from "xlsx"
+import { useMemo, useState } from "react";
+import useSWR from "swr";
+import * as XLSX from "xlsx";
 import {
   ChevronDown,
   ChevronUp,
   Download,
   Landmark,
   ReceiptText,
-} from "lucide-react"
+} from "lucide-react";
 
-type UnknownRecord = Record<string, unknown>
+type UnknownRecord = Record<string, unknown>;
 
 type CategoryFinancialRow = {
-  categoria: string
-  trabajosCompletados: number
-  ingresosBrutos: number
-  comisionFixNow: number
-  pagoProfesionales: number
-  montoPromedioPorPedido: number
-  porcentajeTotal: number
-}
+  categoria: string;
+  trabajosCompletados: number;
+  ingresosBrutos: number;
+  comisionFixNow: number;
+  pagoProfesionales: number;
+  montoPromedioPorPedido: number;
+  porcentajeTotal: number;
+};
 
 const fetcher = async (url: string) => {
-  const response = await fetch(url, { cache: "no-store" })
+  const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error(`No se pudo cargar ${url}`)
+    throw new Error(`No se pudo cargar ${url}`);
   }
 
-  return response.json()
-}
+  return response.json();
+};
 
 function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function toNumber(value: unknown): number {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
 
   if (typeof value === "string") {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
-  return 0
+  return 0;
 }
 
 function pickNumber(source: unknown, keys: string[], fallback = 0): number {
-  if (!isRecord(source)) return fallback
+  if (!isRecord(source)) return fallback;
 
   for (const key of keys) {
-    const value = source[key]
-    const parsed = toNumber(value)
+    const value = source[key];
+    const parsed = toNumber(value);
 
-    if (parsed > 0) return parsed
+    if (parsed > 0) return parsed;
   }
 
-  return fallback
+  return fallback;
 }
 
 function pickMaybeNumber(source: unknown, keys: string[]): number | null {
-  if (!isRecord(source)) return null
+  if (!isRecord(source)) return null;
 
   for (const key of keys) {
-    const value = source[key]
+    const value = source[key];
 
-    if (value === undefined || value === null) continue
+    if (value === undefined || value === null) continue;
 
-    const parsed = toNumber(value)
+    const parsed = toNumber(value);
 
-    if (Number.isFinite(parsed)) return parsed
+    if (Number.isFinite(parsed)) return parsed;
   }
 
-  return null
+  return null;
 }
 
 function pickString(source: unknown, keys: string[], fallback = "-"): string {
-  if (!isRecord(source)) return fallback
+  if (!isRecord(source)) return fallback;
 
   for (const key of keys) {
-    const value = source[key]
+    const value = source[key];
 
     if (typeof value === "string" && value.trim()) {
-      return value.trim()
+      return value.trim();
     }
   }
 
-  return fallback
+  return fallback;
 }
 
 function extractArray(data: unknown): UnknownRecord[] {
   if (Array.isArray(data)) {
-    return data.filter(isRecord)
+    return data.filter(isRecord);
   }
 
-  if (!isRecord(data)) return []
+  if (!isRecord(data)) return [];
 
-  const possibleKeys = ["trabajos", "jobs", "data", "items", "payments"]
+  const possibleKeys = ["trabajos", "jobs", "data", "items", "payments"];
 
   for (const key of possibleKeys) {
-    const value = data[key]
+    const value = data[key];
 
     if (Array.isArray(value)) {
-      return value.filter(isRecord)
+      return value.filter(isRecord);
     }
   }
 
-  return []
+  return [];
 }
 
 function isCompletedJob(job: UnknownRecord): boolean {
-  const estado = pickString(job, ["estado", "status"], "").toUpperCase()
+  const estado = pickString(job, ["estado", "status"], "").toUpperCase();
 
-  return (
-    estado === "COMPLETADO" ||
-    estado === "COMPLETED" ||
-    estado === "PAID" ||
-    estado === "PAGADO"
-  )
+  return estado === "COMPLETADO" || estado === "PAID" || estado === "PAGADO";
 }
 
 function formatMoney(value: number): string {
-  return `$${Math.round(value).toLocaleString("es-AR")}`
+  return `$${Math.round(value).toLocaleString("es-AR")}`;
 }
 
 function formatCompactMoney(value: number): string {
-  const abs = Math.abs(value)
+  const abs = Math.abs(value);
 
   if (abs >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`
+    return `$${(value / 1_000_000).toFixed(1)}M`;
   }
 
   if (abs >= 1_000) {
-    return `$${Math.round(value / 1_000)}K`
+    return `$${Math.round(value / 1_000)}K`;
   }
 
-  return formatMoney(value)
+  return formatMoney(value);
 }
 
 function formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`
+  return `${value.toFixed(1)}%`;
 }
 
 function buildCategoryRows(
   jobs: UnknownRecord[],
-  totalGross: number
+  totalGross: number,
 ): CategoryFinancialRow[] {
-  const grouped = new Map<string, CategoryFinancialRow>()
+  const grouped = new Map<string, CategoryFinancialRow>();
 
   for (const job of jobs) {
     const categoria = pickString(
       job,
       ["categoria", "category", "serviceType", "service_type"],
-      "Sin categoría"
-    )
+      "Sin categoría",
+    );
 
-    const monto = pickNumber(job, ["monto", "amount", "total"], 0)
+    const monto = pickNumber(job, ["monto", "amount", "total"], 0);
 
     const comision =
       pickMaybeNumber(job, [
@@ -165,79 +160,77 @@ function buildCategoryRows(
         "commissionFixNow",
         "commission",
         "comision",
-      ]) ?? monto * 0.15
+      ]) ?? monto * 0.15;
 
-    const current =
-      grouped.get(categoria) ||
-      {
-        categoria,
-        trabajosCompletados: 0,
-        ingresosBrutos: 0,
-        comisionFixNow: 0,
-        pagoProfesionales: 0,
-        montoPromedioPorPedido: 0,
-        porcentajeTotal: 0,
-      }
+    const current = grouped.get(categoria) || {
+      categoria,
+      trabajosCompletados: 0,
+      ingresosBrutos: 0,
+      comisionFixNow: 0,
+      pagoProfesionales: 0,
+      montoPromedioPorPedido: 0,
+      porcentajeTotal: 0,
+    };
 
-    current.trabajosCompletados += 1
-    current.ingresosBrutos += monto
-    current.comisionFixNow += comision
-    current.pagoProfesionales = current.ingresosBrutos - current.comisionFixNow
+    current.trabajosCompletados += 1;
+    current.ingresosBrutos += monto;
+    current.comisionFixNow += comision;
+    current.pagoProfesionales = current.ingresosBrutos - current.comisionFixNow;
     current.montoPromedioPorPedido =
       current.trabajosCompletados > 0
         ? current.ingresosBrutos / current.trabajosCompletados
-        : 0
+        : 0;
     current.porcentajeTotal =
-      totalGross > 0 ? (current.ingresosBrutos / totalGross) * 100 : 0
+      totalGross > 0 ? (current.ingresosBrutos / totalGross) * 100 : 0;
 
-    grouped.set(categoria, current)
+    grouped.set(categoria, current);
   }
 
   return Array.from(grouped.values()).sort(
-    (a, b) => b.ingresosBrutos - a.ingresosBrutos
-  )
+    (a, b) => b.ingresosBrutos - a.ingresosBrutos,
+  );
 }
 
 function addSheet(
   workbook: XLSX.WorkBook,
   rows: Record<string, string | number>[],
-  sheetName: string
+  sheetName: string,
 ) {
-  const worksheet = XLSX.utils.json_to_sheet(rows)
+  const worksheet = XLSX.utils.json_to_sheet(rows);
 
   worksheet["!cols"] = Object.keys(rows[0] || {}).map((key) => ({
     wch: Math.max(key.length + 4, 18),
-  }))
+  }));
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 }
 
 export function FinancialSummaryCard() {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
-  const { data: kpis, isLoading: loadingKpis } = useSWR("/api/kpis", fetcher)
+  const { data: kpis, isLoading: loadingKpis } = useSWR("/api/kpis", fetcher);
 
   const { data: jobsData, isLoading: loadingJobs } = useSWR(
     "/api/trabajos?estado=COMPLETADO",
-    fetcher
-  )
+    fetcher,
+  );
 
   const completedJobs = useMemo(() => {
-    const jobs = extractArray(jobsData)
-    const filtered = jobs.filter(isCompletedJob)
+    const jobs = extractArray(jobsData);
+    const filtered = jobs.filter(isCompletedJob);
 
-    return filtered.length > 0 ? filtered : jobs
-  }, [jobsData])
+    return filtered.length > 0 ? filtered : jobs;
+  }, [jobsData]);
 
   const grossFromJobs = useMemo(() => {
     return completedJobs.reduce((total, job) => {
-      return total + pickNumber(job, ["monto", "amount", "total"], 0)
-    }, 0)
-  }, [completedJobs])
+      return total + pickNumber(job, ["monto", "amount", "total"], 0);
+    }, 0);
+  }, [completedJobs]);
 
   const commissionFromJobs = useMemo(() => {
     return completedJobs.reduce((total, job) => {
-      const monto = pickNumber(job, ["monto", "amount", "total"], 0)
+      const monto = pickNumber(job, ["monto", "amount", "total"], 0);
 
       const comision =
         pickMaybeNumber(job, [
@@ -245,51 +238,51 @@ export function FinancialSummaryCard() {
           "commissionFixNow",
           "commission",
           "comision",
-        ]) ?? monto * 0.15
+        ]) ?? monto * 0.15;
 
-      return total + comision
-    }, 0)
-  }, [completedJobs])
+      return total + comision;
+    }, 0);
+  }, [completedJobs]);
 
   const grossRevenue = pickNumber(
     kpis,
     ["volumenTransacciones", "transactionVolume", "ingresosBrutos"],
-    grossFromJobs
-  )
+    grossFromJobs,
+  );
 
   const fixNowRevenue = pickNumber(
     kpis,
     ["ingresosNetos", "netRevenue", "ingresosFixNow"],
-    commissionFromJobs || grossRevenue * 0.15
-  )
+    commissionFromJobs || grossRevenue * 0.15,
+  );
 
-  const professionalRevenue = grossRevenue - fixNowRevenue
+  const professionalRevenue = grossRevenue - fixNowRevenue;
 
   const completedOrders = pickNumber(
     kpis,
     ["pedidosCompletados", "completedOrders", "trabajosCompletados"],
-    completedJobs.length
-  )
+    completedJobs.length,
+  );
 
   const averageOrderAmount = pickNumber(
     kpis,
     ["montoPromedioPorPedido", "averageOrderValue", "valorPromedioPedido"],
-    completedOrders > 0 ? grossRevenue / completedOrders : 0
-  )
+    completedOrders > 0 ? grossRevenue / completedOrders : 0,
+  );
 
   const commissionRate =
-    grossRevenue > 0 ? (fixNowRevenue / grossRevenue) * 100 : 0
+    grossRevenue > 0 ? (fixNowRevenue / grossRevenue) * 100 : 0;
 
   const categoryRows = useMemo(() => {
-    return buildCategoryRows(completedJobs, grossRevenue)
-  }, [completedJobs, grossRevenue])
+    return buildCategoryRows(completedJobs, grossRevenue);
+  }, [completedJobs, grossRevenue]);
 
-  const isLoading = loadingKpis || loadingJobs
+  const isLoading = loadingKpis || loadingJobs;
 
   function handleExportExcel() {
-    const generatedAt = new Date()
+    const generatedAt = new Date();
 
-    const workbook = XLSX.utils.book_new()
+    const workbook = XLSX.utils.book_new();
 
     addSheet(
       workbook,
@@ -330,8 +323,8 @@ export function FinancialSummaryCard() {
           Observación: "Reporte generado desde Analytics App",
         },
       ],
-      "Resumen financiero"
-    )
+      "Resumen financiero",
+    );
 
     addSheet(
       workbook,
@@ -344,13 +337,13 @@ export function FinancialSummaryCard() {
         "Monto promedio por pedido": row.montoPromedioPorPedido,
         "Porcentaje del total": `${row.porcentajeTotal.toFixed(2)}%`,
       })),
-      "Ingresos categoria"
-    )
+      "Ingresos categoria",
+    );
 
     addSheet(
       workbook,
       completedJobs.map((job) => {
-        const monto = pickNumber(job, ["monto", "amount", "total"], 0)
+        const monto = pickNumber(job, ["monto", "amount", "total"], 0);
 
         const comision =
           pickMaybeNumber(job, [
@@ -358,7 +351,7 @@ export function FinancialSummaryCard() {
             "commissionFixNow",
             "commission",
             "comision",
-          ]) ?? monto * 0.15
+          ]) ?? monto * 0.15;
 
         return {
           "ID trabajo": pickString(job, ["id", "jobId", "job_id"]),
@@ -385,35 +378,35 @@ export function FinancialSummaryCard() {
             "professionalId",
             "professional_id",
           ]),
-        }
+        };
       }),
-      "Transacciones"
-    )
+      "Transacciones",
+    );
 
     XLSX.writeFile(
       workbook,
       `reporte-financiero-fixnow-${generatedAt
         .toISOString()
-        .slice(0, 10)}.xlsx`
-    )
+        .slice(0, 10)}.xlsx`,
+    );
   }
 
   return (
-  <section className="flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <section className="flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-                <Landmark className="h-5 w-5" />
-                </div>
+            <Landmark className="h-5 w-5" />
+          </div>
 
           <div>
             <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                Resumen Financiero
-                </h2>
+              Resumen Financiero
+            </h2>
 
             <p className="mt-1 text-xs text-muted-foreground">
-                Ingresos, comisiones y pagos desde Payments App.
-                </p>
+              Ingresos, comisiones y pagos desde Payments App.
+            </p>
           </div>
         </div>
 
@@ -421,7 +414,7 @@ export function FinancialSummaryCard() {
           type="button"
           onClick={handleExportExcel}
           disabled={isLoading}
-         className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
           Descargar Excel
@@ -509,9 +502,7 @@ export function FinancialSummaryCard() {
       {open && (
         <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
           <div className="rounded-xl border border-border bg-muted/30 p-4">
-            <h3 className="font-semibold text-foreground">
-              Desglose general
-            </h3>
+            <h3 className="font-semibold text-foreground">Desglose general</h3>
 
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between gap-4">
@@ -538,9 +529,7 @@ export function FinancialSummaryCard() {
               </div>
 
               <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">
-                  Comisión estimada
-                </span>
+                <span className="text-muted-foreground">Comisión estimada</span>
                 <span className="font-semibold">
                   {formatPercent(commissionRate)}
                 </span>
@@ -589,5 +578,5 @@ export function FinancialSummaryCard() {
         </div>
       )}
     </section>
-  )
+  );
 }
