@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+enum Categoria {
+  PLOMERIA
+  ELECTRICIDAD
+  GAS
+}
+
+enum EstadoTrabajo {
+  COMPLETADO
+  CANCELADO
+  EN_PROGRESO
+}
+
+model SnapshotKPI {
+  id                   String   @id @default(cuid())
+  fecha                DateTime @unique @db.Date
+  totalUsuarios        Int
+  totalClientes        Int
+  totalProfesionales   Int
+  volumenTransacciones Decimal  @db.Decimal(14, 2)
+  ingresosNetos        Decimal  @db.Decimal(14, 2)
+  pedidosCompletados   Int
+  calificacionPromedio Float
+  totalReseñas         Int
+  reseñasAceptadas     Int      @default(0)
+  reseñasRechazadas    Int      @default(0)
+  creadoEn             DateTime @default(now())
+}
+
+model TrabajoResumen {
+  id                String              @id @default(cuid())
+  trabajoExternoId  String              @unique
+  categoria         Categoria
+  estado            EstadoTrabajo
+  monto             Decimal?            @db.Decimal(12, 2)
+  comisionFixNow    Decimal?            @db.Decimal(12, 2)
+  calificacion      Float?
+  duracionMinutos   Int?
+  fechaCreacion     DateTime
+  fechaFinalizacion DateTime?
+  ciudad            String?
+  motivoCancelacion MotivoCancelacion?
+}
+
+model MotivoCancelacion {
+  id               String         @id @default(cuid())
+  motivo           String
+  categoria        Categoria
+  fecha            DateTime
+  trabajoResumen   TrabajoResumen @relation(fields: [trabajoResumenId], references: [id])
+  trabajoResumenId String         @unique
+}
+
+model MetricaMensual {
+  id                  String     @id @default(cuid())
+  anio                Int
+  mes                 Int
+  categoria           Categoria?
+  trabajosCompletados Int
+  trabajosCancelados  Int
+  ingresosTotal       Decimal    @db.Decimal(14, 2)
+  clientesNuevos      Int
+  ticketPromedio      Decimal    @db.Decimal(12, 2)
+
+  @@unique([anio, mes, categoria])
+}
+
+model ProfesionalResumen {
+  id                   String    @id @default(cuid())
+  profesionalExternoId String    @unique
+  nombre               String
+  categoria            Categoria
+  ciudad               String
+  calificacionPromedio Float
+  totalTrabajos        Int
+  totalCancelaciones   Int
+  ingresoGenerado      Decimal   @db.Decimal(14, 2)
+  ultimaActividad      DateTime
+  activo               Boolean   @default(true)
+  actualizadoEn        DateTime  @updatedAt
+}
+
+model ConfigDashboard {
+  id            String   @id @default(cuid())
+  clave         String   @unique
+  valor         String
+  actualizadoEn DateTime @updatedAt
+}
