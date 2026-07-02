@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, Loader2, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import ReactMarkdown from "react-markdown";
-import type { Components } from "react-markdown";
 type ChatRole = "user" | "model";
 
 interface ChatMessage {
@@ -17,6 +15,10 @@ interface GeminiHistoryPart {
   role: ChatRole;
   parts: { text: string }[];
 }
+
+type InlineSegment =
+  | { type: "text"; value: string }
+  | { type: "strong"; value: string };
 
 const SUGGESTED_PROMPTS = [
   "Compará los ingresos mes a mes",
@@ -43,6 +45,67 @@ function toGeminiHistory(messages: ChatMessage[]): GeminiHistoryPart[] {
   }
 
   return history.slice(-8);
+}
+
+function parseInlineMarkdown(text: string): InlineSegment[] {
+  const segments: InlineSegment[] = [];
+  const pattern = /\*\*(.+?)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({
+        type: "text",
+        value: text.slice(lastIndex, match.index),
+      });
+    }
+
+    segments.push({ type: "strong", value: match[1] });
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({ type: "text", value: text.slice(lastIndex) });
+  }
+
+  return segments.length ? segments : [{ type: "text", value: text }];
+}
+
+function renderModelText(text: string) {
+  const lines = text.split(/\n+/);
+
+  return lines.map((line, index) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      return <div key={index} className="h-2" />;
+    }
+
+    const bulletMatch = /^[-*]\s+(.+)$/.exec(trimmed);
+    const content = bulletMatch ? bulletMatch[1] : trimmed;
+    const segments = parseInlineMarkdown(content);
+
+    return (
+      <p
+        key={index}
+        className={bulletMatch ? "mb-1 flex gap-2" : "mb-2 last:mb-0"}
+      >
+        {bulletMatch ? <span className="shrink-0">•</span> : null}
+        <span>
+          {segments.map((segment, segmentIndex) =>
+            segment.type === "strong" ? (
+              <strong key={segmentIndex} className="font-semibold">
+                {segment.value}
+              </strong>
+            ) : (
+              <span key={segmentIndex}>{segment.value}</span>
+            ),
+          )}
+        </span>
+      </p>
+    );
+  });
 }
 
 export function AnalyticsChat() {
@@ -96,10 +159,7 @@ export function AnalyticsChat() {
         console.error("Respuesta completa de /api/chat:", data);
 
         throw new Error(
-          data.details ||
-            data.error ||
-            raw ||
-            `Error HTTP ${res.status}`,
+          data.details || data.error || raw || `Error HTTP ${res.status}`,
         );
       }
 
@@ -126,19 +186,19 @@ export function AnalyticsChat() {
     <>
       {!open && (
         <Button
-            onClick={() => setOpen(true)}
-            className="fixed bottom-6 right-6 z-[60] h-12 w-12 rounded-full bg-[#082B54] p-0 text-white shadow-lg hover:bg-[#061f3d]"
-            aria-label="Abrir asistente de Analytics"
-            >
-            <Sparkles className="h-5 w-5" />
-            </Button>
+          onClick={() => setOpen(true)}
+          className="fixed bottom-6 right-6 z-60 h-12 w-12 rounded-full bg-[#082B54] p-0 text-white shadow-lg hover:bg-[#061f3d]"
+          aria-label="Abrir asistente de Analytics"
+        >
+          <Sparkles className="h-5 w-5" />
+        </Button>
       )}
 
       {open && (
-        <div className="fixed bottom-20 right-4 z-[70] flex h-[min(520px,calc(100vh-7rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border bg-background shadow-2xl sm:bottom-24 sm:right-6">
+        <div className="fixed bottom-20 right-4 z-70 flex h-[min(520px,calc(100vh-7rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border bg-background shadow-2xl sm:bottom-24 sm:right-6">
           <div className="flex items-center justify-between border-b bg-card px-4 py-3">
             <div className="flex items-center gap-2">
-             <Sparkles className="h-4 w-4 text-[#082B54]" />
+              <Sparkles className="h-4 w-4 text-[#082B54]" />
               <div>
                 <p className="text-sm font-semibold leading-none">
                   Asistente de Analytics
@@ -209,34 +269,13 @@ export function AnalyticsChat() {
                 </div>
 
                 <div
-                  className={`max-w-[260px] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
+                  className={`max-w-65 whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
                     m.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-foreground"
                   }`}
                 >
-                  {m.role === "model" ? (
-            <ReactMarkdown
-                components={{
-                p: ({ children }) => (
-                    <p className="mb-2 last:mb-0">{children}</p>
-                ),
-                ul: ({ children }) => (
-                    <ul className="ml-4 list-disc space-y-1">{children}</ul>
-                ),
-                li: ({ children }) => (
-                    <li>{children}</li>
-                ),
-                strong: ({ children }) => (
-                    <strong className="font-semibold">{children}</strong>
-                ),
-                }}
-            >
-                {m.text}
-            </ReactMarkdown>
-            ) : (
-            m.text
-            )}
+                  {m.role === "model" ? renderModelText(m.text) : m.text}
                 </div>
               </div>
             ))}
@@ -249,10 +288,10 @@ export function AnalyticsChat() {
             )}
 
             {error && (
-                <p className="whitespace-pre-wrap rounded-md bg-yellow-50 px-3 py-2 text-xs text-yellow-700">
-                    {error}
-                </p>
-                )}
+              <p className="whitespace-pre-wrap rounded-md bg-yellow-50 px-3 py-2 text-xs text-yellow-700">
+                {error}
+              </p>
+            )}
           </div>
 
           <form
@@ -271,11 +310,11 @@ export function AnalyticsChat() {
             />
 
             <Button
-                type="submit"
-                size="sm"
-                className="h-9 bg-[#082B54] px-3 text-white hover:bg-[#061f3d]"
-                disabled={loading || !input.trim()}
-                >
+              type="submit"
+              size="sm"
+              className="h-9 bg-[#082B54] px-3 text-white hover:bg-[#061f3d]"
+              disabled={loading || !input.trim()}
+            >
               <Send className="h-3.5 w-3.5" />
             </Button>
           </form>
